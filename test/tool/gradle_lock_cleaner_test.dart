@@ -54,4 +54,53 @@ void main() {
       expect(await lockFile.exists(), isFalse);
     });
   });
+
+  //5.- Verificamos que resolveDefaultLockPath infiera rutas comunes correctamente.
+  group('resolveDefaultLockPath', () {
+    test('prefers GRADLE_USER_HOME when available', () {
+      //6.- Simulamos entorno Windows con ruta personalizada y validamos el resultado.
+      final path = cleaner_lib.resolveDefaultLockPath(
+        {
+          'GRADLE_USER_HOME': r'C:\GradleData',
+        },
+        treatAsWindows: true,
+      );
+
+      expect(path, r'C:\GradleData\caches\journal-1\journal-1.lock');
+    });
+
+    test('falls back to USERPROFILE', () {
+      //7.- Creamos entorno donde solo USERPROFILE está definido.
+      final path = cleaner_lib.resolveDefaultLockPath(
+        {
+          'USERPROFILE': r'C:\Users\Abraham',
+        },
+        treatAsWindows: true,
+      );
+
+      expect(path, r'C:\Users\Abraham\.gradle\caches\journal-1\journal-1.lock');
+    });
+
+    test('uses HOME on Unix like systems', () {
+      //8.- Validamos el comportamiento cuando únicamente existe HOME.
+      final path = cleaner_lib.resolveDefaultLockPath(
+        {
+          'HOME': '/home/developer',
+        },
+        treatAsWindows: false,
+      );
+
+      expect(path, '/home/developer/.gradle/caches/journal-1/journal-1.lock');
+    });
+
+    test('returns null when no variables are present', () {
+      //9.- Sin variables disponibles esperamos un resultado nulo para advertir al CLI.
+      final path = cleaner_lib.resolveDefaultLockPath(
+        const {},
+        treatAsWindows: false,
+      );
+
+      expect(path, isNull);
+    });
+  });
 }

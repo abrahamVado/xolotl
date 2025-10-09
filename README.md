@@ -31,6 +31,11 @@ Prototype app for citizens (clients) to:
    flutter pub get
    flutter run
    ```
+6. If Gradle reports a stale `journal-1.lock`, run the cleaner:
+   ```bash
+   dart run tool/gradle_lock_cleaner.dart
+   ```
+   The tool now auto-detects the standard Gradle cache path. Use `--lock` to point at a custom location if needed.
 
 ## Endpoints expected
 - `GET /api/v1/catalog/incident-types`
