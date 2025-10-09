@@ -1,0 +1,20 @@
+//1.- Carga propiedades locales para ubicar el SDK de Flutter.
+def localProperties = new Properties()
+def localPropertiesFile = new File(rootDir, 'local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+//2.- Verifica que exista la ruta del SDK y aplica los scripts de Flutter.
+def flutterSdkPath = localProperties.getProperty('flutter.sdk')
+if (flutterSdkPath == null) {
+    throw new GradleException('Flutter SDK not found. Define flutter.sdk in the local.properties file.')
+}
+
+def flutterRoot = new File(flutterSdkPath)
+apply from: new File(flutterRoot, 'packages/flutter_tools/gradle/app_plugin_loader.gradle')
+
+//3.- Registra el módulo principal de la app.
+include ':app'

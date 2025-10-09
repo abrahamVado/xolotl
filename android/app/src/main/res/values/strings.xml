@@ -1,0 +1,5 @@
+<!-- //1.- Recursos de texto compartidos por la app Android. -->
+<resources>
+    <string name="app_name">Mictlan Client</string>
+    <string name="google_maps_key">YOUR_ANDROID_KEY</string>
+</resources>

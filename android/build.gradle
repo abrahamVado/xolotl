@@ -1,0 +1,33 @@
+//1.- buildscript configura repositorios y plugins necesarios para compilar el módulo Android.
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+//2.- allprojects asegura que todos los subproyectos usen los mismos repositorios.
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+//3.- Tareas de utilería para limpiar y estandarizar rutas de build.
+rootProject.buildDir = '../build'
+subprojects {
+    project -> project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
+}

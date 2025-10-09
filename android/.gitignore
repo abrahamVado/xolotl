@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.gradle/
+/cxx/
+flutter_export_environment.sh
+/.settings/
+#1.- Evitamos versionar el binario del wrapper de Gradle.
+/gradle/wrapper/gradle-wrapper.jar

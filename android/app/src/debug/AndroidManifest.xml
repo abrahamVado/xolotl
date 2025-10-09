@@ -1,0 +1,4 @@
+<!-- //1.- Manifest de debug que habilita Internet para servicios de desarrollo. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

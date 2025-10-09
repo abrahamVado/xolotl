@@ -1,0 +1,4 @@
+<!-- //1.- Manifest de perfil idéntico al de debug para diagnósticos de red. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
