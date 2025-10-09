@@ -18,7 +18,6 @@ dependencies:
   dio: ^5.7.0
   # //5.- Incluye Equatable para simplificar comparaciones de modelos.
   equatable: ^2.0.5
-  shadcn_flutter: ^0.0.44
   google_maps_flutter: ^2.7.0
   http: ^1.2.2
   device_info_plus: ^10.1.0

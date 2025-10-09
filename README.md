@@ -7,7 +7,7 @@ Prototype app for citizens (clients) to:
 - Each installation auto-generates a device identity and optionally creates a backend user.
 
 ## Stack
-- UI kit: [shadcn_flutter] for theming and components.
+- UI kit: Flutter Material 3 components with custom theme controller.
 - Maps: `google_maps_flutter`
 - Secure identity: `flutter_secure_storage` + `uuid` + `device_info_plus`
 - HTTP: `http`

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn show Button;
 
 import '../theme/theme_controller.dart';
 
@@ -8,7 +7,7 @@ class ThemeModeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //1.- build obtiene el controlador del tema y muestra un botón ghost para alternar.
+    //1.- build obtiene el controlador del tema y muestra un botón ligero para alternar.
     final controller = ThemeScope.of(context);
     final themeMode = controller.mode;
     final icon = switch (themeMode) {
@@ -21,10 +20,11 @@ class ThemeModeButton extends StatelessWidget {
       ThemeMode.dark => 'Oscuro',
       ThemeMode.system => 'Sistema',
     };
-    return shadcn.Button.ghost(
+    return TextButton.icon(
+      //2.- TextButton.icon ofrece una acción ligera que combina ícono y texto.
       onPressed: controller.cycle,
-      leading: Icon(icon),
-      child: Text(label),
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 }
