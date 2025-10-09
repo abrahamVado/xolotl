@@ -5,7 +5,7 @@ plugins {
     //3.- Declara el plugin de aplicación Android sin aplicarlo globalmente.
     id 'com.android.application' version '8.1.2' apply false
     //4.- Declara el plugin de Kotlin Android sin aplicarlo globalmente.
-    id 'org.jetbrains.kotlin.android' version '1.9.22' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
 }
 
 //5.- Define repositorios por defecto para todos los subproyectos.
