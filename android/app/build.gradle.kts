@@ -62,3 +62,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    //10.- Agrega Material Components para proporcionar el tema usado por los estilos Android.
+    implementation("com.google.android.material:material:1.12.0")
+}
