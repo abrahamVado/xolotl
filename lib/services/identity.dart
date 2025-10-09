@@ -1,7 +1,7 @@
 
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 class Identity {
@@ -20,10 +20,20 @@ class Identity {
       };
 
   static const _key = 'mictlan_identity';
-  static final _storage = const FlutterSecureStorage();
+  static const _defaultStorage = FlutterSecureStorageIdentityStorage();
 
-  static Future<Identity> ensureIdentity() async {
-    final existing = await _storage.read(key: _key);
+  static Future<Identity> ensureIdentity({
+    IdentityStorage? storage,
+    DeviceSummaryProvider? deviceSummaryProvider,
+    Uuid? uuid,
+  }) async {
+    //1.- Selecciona los colaboradores inyectables o sus implementaciones por omisión.
+    final IdentityStorage driver = storage ?? _defaultStorage;
+    final DeviceSummaryProvider summaryProvider = deviceSummaryProvider ?? const AndroidDeviceSummaryProvider();
+    final Uuid uuidGenerator = uuid ?? const Uuid();
+
+    //2.- Intenta recuperar una identidad existente desde el almacenamiento seguro.
+    final existing = await driver.read();
     if (existing != null) {
       final data = jsonDecode(existing) as Map<String, dynamic>;
       return Identity(
@@ -33,15 +43,56 @@ class Identity {
         password: data['password'],
       );
     }
-    final deviceInfo = DeviceInfoPlugin();
-    final android = await deviceInfo.androidInfo;
-    final deviceSummary = '${android.brand} ${android.model} (${android.id})';
-    final clientId = const Uuid().v4();
-    // Optionally generate username/password for backend-side provisioning
+
+    //3.- Calcula el resumen del dispositivo y genera credenciales únicas para el cliente.
+    final deviceSummary = await summaryProvider.summary();
+    final clientId = uuidGenerator.v4();
     final username = 'u_${clientId.substring(0, 8)}';
-    final password = const Uuid().v4();
+    final password = uuidGenerator.v4();
     final ident = Identity(clientId: clientId, deviceSummary: deviceSummary, username: username, password: password);
-    await _storage.write(key: _key, value: jsonEncode(ident.toJson()));
+
+    //4.- Persiste la nueva identidad serializada para uso futuro y regresa el objeto.
+    await driver.write(jsonEncode(ident.toJson()));
     return ident;
+  }
+}
+
+abstract class IdentityStorage {
+  Future<String?> read();
+  Future<void> write(String value);
+}
+
+class FlutterSecureStorageIdentityStorage implements IdentityStorage {
+  const FlutterSecureStorageIdentityStorage({FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage();
+
+  final FlutterSecureStorage _storage;
+
+  @override
+  Future<String?> read() {
+    //1.- Lee el valor persistido asociado a la identidad del cliente.
+    return _storage.read(key: Identity._key);
+  }
+
+  @override
+  Future<void> write(String value) {
+    //2.- Guarda la representación JSON de la identidad bajo la llave fija.
+    return _storage.write(key: Identity._key, value: value);
+  }
+}
+
+abstract class DeviceSummaryProvider {
+  Future<String> summary();
+}
+
+class AndroidDeviceSummaryProvider implements DeviceSummaryProvider {
+  const AndroidDeviceSummaryProvider({DeviceInfoPlugin? plugin}) : _plugin = plugin ?? DeviceInfoPlugin();
+
+  final DeviceInfoPlugin _plugin;
+
+  @override
+  Future<String> summary() async {
+    //1.- Obtiene la información Android actual y arma la cadena de resumen.
+    final android = await _plugin.androidInfo;
+    return '${android.brand} ${android.model} (${android.id})';
   }
 }

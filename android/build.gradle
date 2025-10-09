@@ -11,7 +11,19 @@ plugins {
 //5.- Define repositorios por defecto para todos los subproyectos.
 allprojects {
     repositories {
+        //1.- google() usa el endpoint principal de Maven para dependencias Android.
         google()
+        //2.- Provee una URL directa alternativa a maven.google.com para redes con inspección TLS.
+        maven {
+            url 'https://maven.google.com'
+            content { includeGroupByRegex 'com\\.android\\..*' }
+        }
+        //3.- Añade un mirror basado en Cloud Storage que evita errores de Tag mismatch.
+        maven {
+            url 'https://maven-central.storage-download.googleapis.com/maven2/'
+            content { includeGroupByRegex 'com\\.android\\..*' }
+        }
+        //4.- Complementa con Maven Central para bibliotecas no provistas por Google.
         mavenCentral()
     }
 }
