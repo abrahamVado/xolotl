@@ -2,8 +2,8 @@
 plugins {
     //2.- Declara el plugin de aplicación Android sin aplicarlo globalmente.
     id 'com.android.application' version '8.3.2' apply false
-    //3.- Declara el plugin de Kotlin Android reutilizando la versión que expone el classpath de Flutter.
-    id 'org.jetbrains.kotlin.android' apply false
+    //3.- Declara el plugin de Kotlin Android fijando explícitamente la versión compatible con AGP 8.x.
+    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
 }
 
 //5.- Define repositorios por defecto para todos los subproyectos.
