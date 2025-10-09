@@ -1,0 +1,82 @@
+//1.- Carga configuraciones de Flutter desde local.properties para sincronizar versiones.
+def localProperties = new Properties()
+def localPropertiesFile = new File(rootProject.projectDir, 'local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException('Flutter SDK not found. Define flutter.sdk in the local.properties file.')
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '1')
+def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0')
+
+//2.- Registra los plugins base de Android y Kotlin para el módulo app.
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+def flutterGradle = new File(flutterRoot, 'packages/flutter_tools/gradle/flutter.gradle')
+if (flutterGradle.exists()) {
+    //3.- Aplica el script oficial de Flutter cuando está disponible.
+    apply from: flutterGradle
+} else {
+    //3.- Si el script no existe (p. ej. en CI sin SDK), registramos un placeholder para permitir tareas básicas.
+    project.logger.lifecycle('Flutter gradle script not found, continuing with placeholder configuration for wrapper generation.')
+    ext.flutter = [:]
+    ext.flutter['source'] = { Object _ -> }
+}
+
+//4.- Configura parámetros de compilación y recursos para la app.
+android {
+    namespace 'com.example.mictlan_client'
+    compileSdkVersion 34
+
+    defaultConfig {
+        applicationId 'com.example.mictlan_client'
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+if (project.extensions.extraProperties.has('flutter')) {
+    //5.- Configura la ruta del código Flutter cuando el plugin está presente.
+    flutter {
+        source '../..'
+    }
+}
+//6.- Dependencias requeridas por Kotlin y Flutter.
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+}

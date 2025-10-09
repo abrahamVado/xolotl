@@ -1,0 +1,4 @@
+<!-- //1.- Variante v21 para mantener compatibilidad con transparencias si se usan en el futuro. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_color" />
+</layer-list>

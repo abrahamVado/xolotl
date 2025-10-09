@@ -1,0 +1,4 @@
+<!-- //1.- Drawable usado en la pantalla de lanzamiento con color sólido. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_color" />
+</layer-list>

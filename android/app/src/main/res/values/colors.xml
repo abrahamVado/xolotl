@@ -1,0 +1,5 @@
+<!-- //1.- Paleta utilizada por temas y recursos de lanzamiento. -->
+<resources>
+    <color name="ic_launcher_background">#121212</color>
+    <color name="splash_color">#121212</color>
+</resources>
