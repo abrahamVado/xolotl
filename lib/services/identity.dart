@@ -85,14 +85,19 @@ abstract class DeviceSummaryProvider {
 }
 
 class AndroidDeviceSummaryProvider implements DeviceSummaryProvider {
-  const AndroidDeviceSummaryProvider({DeviceInfoPlugin? plugin}) : _plugin = plugin ?? DeviceInfoPlugin();
+  const AndroidDeviceSummaryProvider({DeviceInfoPlugin? plugin}) : _plugin = plugin;
 
-  final DeviceInfoPlugin _plugin;
+  final DeviceInfoPlugin? _plugin;
+
+  //1.- _resolvePlugin retorna la instancia inyectada o crea una nueva según sea necesario.
+  DeviceInfoPlugin _resolvePlugin() {
+    return _plugin ?? DeviceInfoPlugin();
+  }
 
   @override
   Future<String> summary() async {
-    //1.- Obtiene la información Android actual y arma la cadena de resumen.
-    final android = await _plugin.androidInfo;
+    //2.- Obtiene la información Android actual y arma la cadena de resumen.
+    final android = await _resolvePlugin().androidInfo;
     return '${android.brand} ${android.model} (${android.id})';
   }
 }

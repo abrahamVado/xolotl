@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn show Button;
 import '../services/services.dart';
 
 class ConsultScreen extends StatefulWidget {
@@ -48,7 +48,7 @@ class _ConsultScreenState extends State<ConsultScreen> {
             decoration: const InputDecoration(labelText: 'Enter folio', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          Button.primary(
+          shadcn.Button.primary(
             onPressed: _loading ? null : _search,
             child: const Text('Consult'),
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shadcn show Button;
 
 import '../theme/theme_controller.dart';
 
@@ -21,7 +21,7 @@ class ThemeModeButton extends StatelessWidget {
       ThemeMode.dark => 'Oscuro',
       ThemeMode.system => 'Sistema',
     };
-    return Button.ghost(
+    return shadcn.Button.ghost(
       onPressed: controller.cycle,
       leading: Icon(icon),
       child: Text(label),
