@@ -2,13 +2,24 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/api.dart';
 import '../services/services.dart';
-import '../widgets/bento_menu.dart';
+import '../services/session_service.dart';
+import '../widgets/report_type_overlay.dart';
 import '../widgets/otp_auth_sheet.dart';
 import '../widgets/report_details_dialog.dart';
 
 class MapReportScreen extends StatefulWidget {
-  const MapReportScreen({super.key});
+  final ApiService? api;
+  final SessionService? session;
+  final ValueChanged<String>? onReportTypeSelected;
+
+  const MapReportScreen({
+    super.key,
+    this.api,
+    this.session,
+    this.onReportTypeSelected,
+  });
 
   @override
   State<MapReportScreen> createState() => _MapReportScreenState();
@@ -25,6 +36,15 @@ class _MapReportScreenState extends State<MapReportScreen> {
   bool _loading = true;
   //5.- _introAcknowledged controla si la introducción ya fue aceptada.
   bool _introAcknowledged = false;
+  //6.- _pendingLatLng preserva la coordenada mientras la persona elige el tipo.
+  LatLng? _pendingLatLng;
+  //7.- _showTypePicker activa la superposición flotante con los botones shadcn.
+  bool _showTypePicker = false;
+
+  //8.- _api expone la dependencia inyectable o recurre al singleton global.
+  ApiService get _api => widget.api ?? apiService;
+  //9.- _session expone la sesión inyectada para pruebas o la global.
+  SessionService get _session => widget.session ?? sessionService;
 
   @override
   void initState() {
@@ -32,9 +52,9 @@ class _MapReportScreenState extends State<MapReportScreen> {
     _load();
   }
 
-  //6.- _load consulta tipos de incidente y actualiza el menú bento.
+  //10.- _load consulta tipos de incidente y actualiza el menú bento.
   Future<void> _load() async {
-    final data = await apiService.getIncidentTypes();
+    final data = await _api.getIncidentTypes();
     setState(() {
       _types = data.isEmpty
           ? [
@@ -48,9 +68,9 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //7.- _ensureSession verifica que exista token ciudadano antes de reportar.
+  //11.- _ensureSession verifica que exista token ciudadano antes de reportar.
   Future<bool> _ensureSession() async {
-    if (await sessionService.hasValidToken()) {
+    if (await _session.hasValidToken()) {
       return true;
     }
     final ok = await showModalBottomSheet<bool>(
@@ -62,26 +82,45 @@ class _MapReportScreenState extends State<MapReportScreen> {
     return ok == true;
   }
 
-  //8.- _onTap gestiona el flujo completo para crear el reporte ciudadano.
+  //12.- _onTap guarda la coordenada seleccionada y despliega la superposición.
   void _onTap(LatLng latLng) async {
-    setState(() => _selected = latLng);
-    final type = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => BentoMenu(types: _types),
-    );
-    if (type == null) return;
-    if (!mounted) return;
-    if (!await _ensureSession()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas verificar tu teléfono.')));
+    setState(() {
+      _selected = latLng;
+      _pendingLatLng = latLng;
+      _showTypePicker = true;
+    });
+  }
+
+  //13.- _cancelTypeSelection cierra el menú flotante sin continuar el flujo.
+  void _cancelTypeSelection() {
+    setState(() {
+      _showTypePicker = false;
+      _pendingLatLng = null;
+    });
+  }
+
+  //14.- _handleTypeSelected continúa el flujo de reporte tras elegir la categoría.
+  Future<void> _handleTypeSelected(String type) async {
+    final latLng = _pendingLatLng;
+    setState(() {
+      _showTypePicker = false;
+      _pendingLatLng = null;
+    });
+    if (latLng == null || !mounted) {
       return;
     }
-    final phone = await sessionService.currentPhone();
+    widget.onReportTypeSelected?.call(type);
+    if (!await _ensureSession()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Necesitas verificar tu teléfono.')));
+      return;
+    }
+    final phone = await _session.currentPhone();
     if (phone == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No encontramos tu sesión activa.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('No encontramos tu sesión activa.')));
       return;
     }
     final result = await showDialog<ReportDetailsResult>(
@@ -89,7 +128,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
       builder: (_) => ReportDetailsDialog(phone: phone),
     );
     if (result == null) return;
-    final res = await apiService.submitReport(
+    final res = await _api.submitReport(
       incidentTypeId: type,
       description: result.description,
       contactEmail: result.email,
@@ -102,11 +141,12 @@ class _MapReportScreenState extends State<MapReportScreen> {
       final folio = res['folio'] ?? 'unknown';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Report sent. Folio: $folio')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send report')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Failed to send report')));
     }
   }
 
-  //9.- _acknowledgeIntro registra la interacción con la pantalla inicial.
+  //15.- _acknowledgeIntro registra la interacción con la pantalla inicial.
   void _acknowledgeIntro() {
     setState(() => _introAcknowledged = true);
   }
@@ -211,6 +251,28 @@ class _MapReportScreenState extends State<MapReportScreen> {
             top: 50,
             right: 20,
             child: CircularProgressIndicator(),
+          ),
+        if (_showTypePicker)
+          Positioned.fill(
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onTap: _cancelTypeSelection,
+                  behavior: HitTestBehavior.opaque,
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    child: ReportTypeOverlay(
+                      types: _types,
+                      onSelected: _handleTypeSelected,
+                      onDismiss: _cancelTypeSelection,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
       ],
     );

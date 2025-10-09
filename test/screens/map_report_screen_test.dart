@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
@@ -5,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
+import 'package:mictlan_client/services/api.dart';
+import 'package:mictlan_client/services/session_service.dart';
 
 //1.- _FakeGoogleMapsPlatform neutraliza las dependencias de plataforma del mapa.
 class _FakeGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
@@ -219,27 +223,160 @@ class _FakeGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
   void enableDebugInspection() {}
 }
 
+//2.- _RecordingHttpClient responde con datos prefabricados y registra envíos.
+class _RecordingHttpClient extends http.BaseClient {
+  final List<Map<String, dynamic>> incidentTypes;
+  String? lastIncidentType;
+
+  _RecordingHttpClient({required this.incidentTypes});
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request.method == 'GET' && request.url.path.endsWith('/incident-types')) {
+      final body = jsonEncode(incidentTypes);
+      return http.StreamedResponse(
+        Stream<List<int>>.fromIterable([utf8.encode(body)]),
+        200,
+        headers: const {'content-type': 'application/json'},
+      );
+    }
+    if (request.method == 'POST' && request.url.path.endsWith('/reports')) {
+      final bytes = await request.finalize().fold<List<int>>(
+            <int>[],
+            (previous, element) => previous..addAll(element),
+          );
+      final payload = utf8.decode(bytes);
+      final data = jsonDecode(payload) as Map<String, dynamic>;
+      lastIncidentType = data['incidentTypeId'] as String?;
+      return http.StreamedResponse(
+        Stream<List<int>>.fromIterable([
+          utf8.encode(jsonEncode({'folio': 'abc123'})),
+        ]),
+        201,
+        headers: const {'content-type': 'application/json'},
+      );
+    }
+    return http.StreamedResponse(
+      Stream<List<int>>.fromIterable([utf8.encode('{}')]),
+      404,
+      headers: const {'content-type': 'application/json'},
+    );
+  }
+}
+
+//3.- _testIncidentTypes reproduce el catálogo por defecto para las pruebas.
+const List<Map<String, dynamic>> _testIncidentTypes = [
+  {'id': 'pothole', 'name': 'Pothole', 'emoji': '🕳️'},
+  {'id': 'light', 'name': 'Street Light', 'emoji': '💡'},
+  {'id': 'trash', 'name': 'Trash', 'emoji': '🗑️'},
+  {'id': 'water', 'name': 'Water Leak', 'emoji': '💧'},
+];
+
+//4.- _TestBundle agrupa cliente HTTP, sesión y servicio API para cada caso.
+class _TestBundle {
+  late final _RecordingHttpClient client;
+  late final SessionService session;
+  late final ApiService api;
+
+  _TestBundle() {
+    client = _RecordingHttpClient(incidentTypes: _testIncidentTypes);
+    session = SessionService(
+      client: client,
+      storage: InMemoryTokenStorage(
+        SessionToken(
+          token: 'token',
+          expiresAt: DateTime.now().add(const Duration(hours: 1)),
+          phone: '+521111111111',
+        ),
+      ),
+      clock: () => DateTime.now(),
+    );
+    api = ApiService(client: client, session: session);
+  }
+}
+
+//5.- _pumpReportScreen unifica la creación del árbol Material con dependencias falsas.
+Future<void> _pumpReportScreen(
+  WidgetTester tester,
+  _TestBundle bundle, {
+  ValueChanged<String>? onTypeSelected,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: MapReportScreen(
+        api: bundle.api,
+        session: bundle.session,
+        onReportTypeSelected: onTypeSelected,
+      ),
+    ),
+  );
+}
+
 void main() {
-  //2.- main agrupa y prepara las pruebas del flujo de introducción del mapa.
+  //6.- main agrupa y prepara las pruebas del flujo de introducción del mapa.
   setUpAll(() {
     GoogleMapsFlutterPlatform.instance = _FakeGoogleMapsPlatform();
   });
 
   testWidgets('muestra la introducción por defecto', (tester) async {
-    //3.- Validamos que el mensaje inicial aparezca al crear la pantalla.
-    await tester.pumpWidget(const MaterialApp(home: MapReportScreen()));
+    //7.- Validamos que el mensaje inicial aparezca al crear la pantalla.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
 
     expect(find.text('Click to continue'), findsOneWidget);
     expect(find.byType(GoogleMap), findsNothing);
   });
 
   testWidgets('cambia al mapa después de continuar', (tester) async {
-    //4.- Confirmamos que la pulsación del botón renderiza el mapa.
-    await tester.pumpWidget(const MaterialApp(home: MapReportScreen()));
+    //8.- Confirmamos que la pulsación del botón renderiza el mapa.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
 
     await tester.tap(find.text('Click to continue'));
     await tester.pumpAndSettle();
 
     expect(find.byType(GoogleMap), findsOneWidget);
+  });
+
+  testWidgets('tocar el mapa muestra el selector flotante', (tester) async {
+    //9.- Simulamos un toque para verificar que el overlay aparezca.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    map.onTap?.call(const LatLng(20.0, -99.0));
+    await tester.pump();
+
+    expect(find.byKey(const Key('report-type-overlay')), findsOneWidget);
+  });
+
+  testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {
+    //10.- Validamos que la selección dispare el flujo con el tipo esperado.
+    final bundle = _TestBundle();
+    String? reportedType;
+    await _pumpReportScreen(tester, bundle, onTypeSelected: (value) => reportedType = value);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    map.onTap?.call(const LatLng(19.43, -99.13));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('report-type-pothole')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byLabelText('Descripción'), 'Bache grande');
+    await tester.enterText(find.byLabelText('Correo de contacto'), 'ciudadano@example.com');
+    await tester.enterText(find.byLabelText('Referencia de dirección'), 'Calle Principal 123');
+    await tester.tap(find.text('Enviar reporte'));
+    await tester.pumpAndSettle();
+
+    expect(bundle.client.lastIncidentType, 'pothole');
+    expect(reportedType, 'pothole');
+    expect(find.byKey(const Key('report-type-overlay')), findsNothing);
   });
 }

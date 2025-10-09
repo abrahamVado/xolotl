@@ -23,6 +23,7 @@ dependencies:
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^9.2.2
   uuid: ^4.5.1
+  shadcn_flutter: ^0.0.44
 
 dev_dependencies:
   flutter_test:
