@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import '../services/api.dart';
+import '../services/services.dart';
 import '../widgets/bento_menu.dart';
+import '../widgets/otp_auth_sheet.dart';
+import '../widgets/report_details_dialog.dart';
 
 class MapReportScreen extends StatefulWidget {
   const MapReportScreen({super.key});
@@ -25,8 +27,9 @@ class _MapReportScreenState extends State<MapReportScreen> {
     _load();
   }
 
+  //1.- _load consulta tipos de incidente y actualiza el menú bento.
   Future<void> _load() async {
-    final data = await Api.getIncidentTypes();
+    final data = await apiService.getIncidentTypes();
     setState(() {
       _types = data.isEmpty
           ? [
@@ -40,6 +43,21 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
+  //2.- _ensureSession verifica que exista token ciudadano antes de reportar.
+  Future<bool> _ensureSession() async {
+    if (await sessionService.hasValidToken()) {
+      return true;
+    }
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const OtpAuthSheet(),
+    );
+    return ok == true;
+  }
+
+  //3.- _onTap gestiona el flujo completo para crear el reporte ciudadano.
   void _onTap(LatLng latLng) async {
     setState(() => _selected = latLng);
     final type = await showModalBottomSheet<String>(
@@ -50,28 +68,29 @@ class _MapReportScreenState extends State<MapReportScreen> {
     );
     if (type == null) return;
     if (!mounted) return;
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
+    if (!await _ensureSession()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Necesitas verificar tu teléfono.')));
+      return;
+    }
+    final phone = await sessionService.currentPhone();
+    if (phone == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No encontramos tu sesión activa.')));
+      return;
+    }
+    final result = await showDialog<ReportDetailsResult>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Describe the problem'),
-        content: TextField(
-          controller: controller,
-          maxLines: 4,
-          decoration: const InputDecoration(hintText: 'Short description'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Send')),
-        ],
-      ),
+      builder: (_) => ReportDetailsDialog(phone: phone),
     );
-    if (ok != true) return;
-    final res = await Api.submitReport(
-      type: type,
-      message: controller.text,
+    if (result == null) return;
+    final res = await apiService.submitReport(
+      incidentTypeId: type,
+      description: result.description,
+      contactEmail: result.email,
       lat: latLng.latitude,
       lng: latLng.longitude,
+      address: result.address,
     );
     if (!mounted) return;
     if (res != null) {
