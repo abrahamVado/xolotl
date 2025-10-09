@@ -1,4 +1,14 @@
-//1.- Carga configuraciones de Flutter desde local.properties para sincronizar versiones.
+//1.- Declara los plugins necesarios directamente usando la sintaxis moderna de Gradle.
+plugins {
+    //2.- Activa el plugin de aplicación Android para generar el APK.
+    id 'com.android.application'
+    //3.- Habilita el soporte para Kotlin en el módulo Android.
+    id 'org.jetbrains.kotlin.android'
+    //4.- Conecta el módulo con las tareas generadas por Flutter.
+    id 'dev.flutter.flutter-gradle-plugin'
+}
+
+//5.- Lee configuraciones compartidas desde local.properties para versionado y rutas.
 def localProperties = new Properties()
 def localPropertiesFile = new File(rootProject.projectDir, 'local.properties')
 if (localPropertiesFile.exists()) {
@@ -7,38 +17,18 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) {
-    throw new GradleException('Flutter SDK not found. Define flutter.sdk in the local.properties file.')
-}
-
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '1')
 def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0')
 
-//2.- Registra los plugins base de Android y Kotlin para el módulo app.
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-
-def flutterGradle = new File(flutterRoot, 'packages/flutter_tools/gradle/flutter.gradle')
-if (flutterGradle.exists()) {
-    //3.- Aplica el script oficial de Flutter cuando está disponible.
-    apply from: flutterGradle
-} else {
-    //3.- Si el script no existe (p. ej. en CI sin SDK), registramos un placeholder para permitir tareas básicas.
-    project.logger.lifecycle('Flutter gradle script not found, continuing with placeholder configuration for wrapper generation.')
-    ext.flutter = [:]
-    ext.flutter['source'] = { Object _ -> }
-}
-
-//4.- Configura parámetros de compilación y recursos para la app.
+//6.- Configura parámetros de compilación y empaquetado del módulo Android.
 android {
     namespace 'com.example.mictlan_client'
-    compileSdkVersion 34
+    compileSdk 34
 
     defaultConfig {
         applicationId 'com.example.mictlan_client'
-        minSdkVersion 21
-        targetSdkVersion 34
+        minSdk 21
+        targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
@@ -70,13 +60,12 @@ android {
     }
 }
 
-if (project.extensions.extraProperties.has('flutter')) {
-    //5.- Configura la ruta del código Flutter cuando el plugin está presente.
-    flutter {
-        source '../..'
-    }
+//7.- Informa al plugin de Flutter dónde se encuentra el código Dart del proyecto.
+flutter {
+    source '../..'
 }
-//6.- Dependencias requeridas por Kotlin y Flutter.
+
+//8.- Dependencias adicionales necesarias para Kotlin estándar.
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7'
 }
