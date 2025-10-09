@@ -8,31 +8,27 @@ plugins {
     id 'dev.flutter.flutter-gradle-plugin'
 }
 
-//5.- Lee configuraciones compartidas desde local.properties para versionado y rutas.
-def localProperties = new Properties()
-def localPropertiesFile = new File(rootProject.projectDir, 'local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode', '1')
-def flutterVersionName = localProperties.getProperty('flutter.versionName', '1.0')
-
-//6.- Configura parámetros de compilación y empaquetado del módulo Android.
+//5.- Configura parámetros de compilación y empaquetado del módulo Android.
 android {
+    //1.- Define el namespace coherente con el identificador base de la app.
     namespace 'com.example.mictlan_client'
-    compileSdk 34
+    //2.- Usa la versión de compileSdk provista por Flutter para mantenerse alineado.
+    compileSdkVersion flutter.compileSdkVersion
+    //3.- Asegura que el NDK utilizado coincida con la configuración global de Flutter.
+    ndkVersion flutter.ndkVersion
 
     defaultConfig {
+        //4.- Identificador base de la aplicación.
         applicationId 'com.example.mictlan_client'
-        minSdk 21
-        targetSdk 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        //5.- Sincroniza mínimos y objetivos con los valores del proyecto Flutter.
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        //6.- Versionado dinámico basado en local.properties gestionado por Flutter.
+        versionCode flutter.versionCode
+        versionName flutter.versionName
     }
 
+    //7.- Mantiene el keystore de depuración para ejecuciones locales.
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -42,6 +38,7 @@ android {
         }
     }
 
+    //8.- Define tipos de build conservando la configuración de depuración para release temporal.
     buildTypes {
         release {
             signingConfig signingConfigs.debug
@@ -50,22 +47,42 @@ android {
         }
     }
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+    //9.- Declara la dimensión de sabores y los dos flavors usados en la app de referencia.
+    flavorDimensions 'app'
+    productFlavors {
+        citizen {
+            //1.- Etiqueta al flavor ciudadano dentro de la dimensión principal.
+            dimension 'app'
+            //2.- Ajusta sufijos para diferenciar el identificador y la versión.
+            applicationIdSuffix '.citizen'
+            versionNameSuffix '-citizen'
+        }
+        admin {
+            //3.- Define el flavor administrativo con sus propios sufijos.
+            dimension 'app'
+            applicationIdSuffix '.admin'
+            versionNameSuffix '-admin'
+        }
     }
 
+    //10.- Fuerza compatibilidad de compilación con Java 11 según la referencia.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    //11.- Ajusta Kotlin para que emita bytecode compatible con Java 11.
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '11'
     }
 }
 
-//7.- Informa al plugin de Flutter dónde se encuentra el código Dart del proyecto.
+//6.- Informa al plugin de Flutter dónde se encuentra el código Dart del proyecto.
 flutter {
     source '../..'
 }
 
-//8.- Dependencias adicionales necesarias para Kotlin estándar.
+//7.- Dependencias adicionales necesarias para Kotlin estándar.
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0'
 }
