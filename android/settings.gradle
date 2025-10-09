@@ -1,20 +1,31 @@
-//1.- Carga propiedades locales para ubicar el SDK de Flutter.
-def localProperties = new Properties()
-def localPropertiesFile = new File(rootDir, 'local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
+//1.- Gestiona la configuración de plugins cargando primero la ruta del SDK de Flutter.
+pluginManagement {
+    //2.- Lee el archivo local.properties para obtener el SDK de Flutter requerido.
+    def localProperties = new Properties()
+    def localPropertiesFile = new File(rootDir, 'local.properties')
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.withReader('UTF-8') { reader ->
+            localProperties.load(reader)
+        }
+    }
+    def flutterSdkPath = localProperties.getProperty('flutter.sdk')
+    if (flutterSdkPath == null) {
+        throw new GradleException('Flutter SDK not found. Define flutter.sdk in the local.properties file.')
+    }
+    //3.- Expone los plugins generados por Flutter como un build incluido.
+    includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
+    //4.- Declara los repositorios de los que se podrán descargar plugins externos.
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 
-//2.- Verifica que exista la ruta del SDK y aplica los scripts de Flutter.
-def flutterSdkPath = localProperties.getProperty('flutter.sdk')
-if (flutterSdkPath == null) {
-    throw new GradleException('Flutter SDK not found. Define flutter.sdk in the local.properties file.')
+//5.- Registra el plugin que permite a Flutter inyectar configuraciones en Gradle.
+plugins {
+    id 'dev.flutter.flutter-plugin-loader' version '1.0.0'
 }
 
-def flutterRoot = new File(flutterSdkPath)
-apply from: new File(flutterRoot, 'packages/flutter_tools/gradle/app_plugin_loader.gradle')
-
-//3.- Registra el módulo principal de la app.
+//6.- Agrega el módulo principal de la aplicación Android al proyecto.
 include ':app'
