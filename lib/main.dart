@@ -1,6 +1,5 @@
 
 import 'package:flutter/material.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'config.dart';
 import 'screens/map_report_screen.dart';
 import 'screens/consult_screen.dart';
@@ -46,11 +45,14 @@ class _MictlanAppState extends State<MictlanApp> {
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
-          return ShadcnApp(
+          //4.- Define esquemas de color consistentes para modos claro y oscuro usando Material 3.
+          final colorScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
+          final darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
+          return MaterialApp(
             title: 'Mictlan Client',
             themeMode: _controller.mode,
-            theme: ThemeData(colorScheme: LegacyColorSchemes.zinc()),
-            darkTheme: ThemeData(colorScheme: LegacyColorSchemes.darkZinc()),
+            theme: ThemeData(colorScheme: colorScheme, useMaterial3: true),
+            darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
             home: const HomeScreen(),
           );
         },
