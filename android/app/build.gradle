@@ -67,5 +67,5 @@ flutter {
 
 //8.- Dependencias adicionales necesarias para Kotlin estándar.
 dependencies {
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'
 }
