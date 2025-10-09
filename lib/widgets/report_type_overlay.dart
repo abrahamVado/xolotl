@@ -101,7 +101,7 @@ class ReportTypeOverlay extends StatelessWidget {
               ),
               shad.IconButton.ghost(
                 onPressed: onDismiss,
-                child: const Icon(Icons.close),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
