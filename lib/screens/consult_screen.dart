@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import '../services/api.dart';
+import '../services/services.dart';
 
 class ConsultScreen extends StatefulWidget {
   const ConsultScreen({super.key});
@@ -16,7 +16,7 @@ class _ConsultScreenState extends State<ConsultScreen> {
 
   Future<void> _search() async {
     setState(() { _loading = true; _result = null; });
-    final res = await Api.getFolio(_controller.text.trim());
+    final res = await apiService.getFolio(_controller.text.trim());
     setState(() { _result = res; _loading = false; });
   }
 
