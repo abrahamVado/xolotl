@@ -1,0 +1,27 @@
+
+name: mictlan_client
+description: Client prototype for reporting and consulting incidents against the Mictlan Go backend.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shadcn_flutter: ^0.6.0
+  google_maps_flutter: ^2.7.0
+  http: ^1.2.2
+  device_info_plus: ^10.1.0
+  flutter_secure_storage: ^9.2.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
