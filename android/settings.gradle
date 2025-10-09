@@ -16,7 +16,19 @@ pluginManagement {
     includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
     //4.- Declara los repositorios de los que se podrán descargar plugins externos.
     repositories {
+        //1.- google() referencia el repositorio oficial de plugins Android.
         google()
+        //2.- Mirror alternativo para evitar respuestas corruptas desde dl.google.com.
+        maven {
+            url 'https://maven.google.com'
+            content { includeGroupByRegex 'com\\.android\\..*' }
+        }
+        //3.- Usa el bucket de Google Cloud que replica el repositorio para conexiones problemáticas.
+        maven {
+            url 'https://maven-central.storage-download.googleapis.com/maven2/'
+            content { includeGroupByRegex 'com\\.android\\..*' }
+        }
+        //4.- Gradle Plugin Portal y Maven Central completan las dependencias públicas restantes.
         mavenCentral()
         gradlePluginPortal()
     }
