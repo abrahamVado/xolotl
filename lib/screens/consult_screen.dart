@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import '../services/services.dart';
 
 class ConsultScreen extends StatefulWidget {
@@ -14,10 +15,24 @@ class _ConsultScreenState extends State<ConsultScreen> {
   Map<String, dynamic>? _result;
   bool _loading = false;
 
+  //1.- _search consulta el folio ingresado y actualiza la interfaz con el resultado.
   Future<void> _search() async {
-    setState(() { _loading = true; _result = null; });
+    setState(() {
+      _loading = true;
+      _result = null;
+    });
     final res = await apiService.getFolio(_controller.text.trim());
-    setState(() { _result = res; _loading = false; });
+    setState(() {
+      _result = res;
+      _loading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    //2.- dispose libera el controlador de texto para evitar fugas de memoria.
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -33,7 +48,10 @@ class _ConsultScreenState extends State<ConsultScreen> {
             decoration: const InputDecoration(labelText: 'Enter folio', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _loading ? null : _search, child: const Text('Consult')),
+          Button.primary(
+            onPressed: _loading ? null : _search,
+            child: const Text('Consult'),
+          ),
           const SizedBox(height: 24),
           if (_loading) const LinearProgressIndicator(),
           if (_result != null)
