@@ -3,7 +3,7 @@ plugins {
     //2.- Habilita el cargador de plugins de Flutter para sincronizar dependencias generadas.
     id 'dev.flutter.flutter-plugin-loader' version '1.0.0'
     //3.- Declara el plugin de aplicación Android sin aplicarlo globalmente.
-    id 'com.android.application' version '8.1.2' apply false
+    id 'com.android.application' version '8.3.2' apply false
     //4.- Declara el plugin de Kotlin Android sin aplicarlo globalmente.
     id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
 }
