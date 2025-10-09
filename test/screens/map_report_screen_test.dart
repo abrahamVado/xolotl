@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
 import 'package:mictlan_client/services/api.dart';
 import 'package:mictlan_client/services/session_service.dart';
+import 'package:mictlan_client/theme/shad_theme_builder.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
 //1.- _FakeGoogleMapsPlatform neutraliza las dependencias de plataforma del mapa.
@@ -301,13 +302,27 @@ Future<void> _pumpReportScreen(
   WidgetTester tester,
   _TestBundle bundle, {
   ValueChanged<String>? onTypeSelected,
+  ThemeMode mode = ThemeMode.light,
 }) async {
+  final lightScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
+  final darkScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
+  final shadTheme = ShadThemeBuilder.fromMaterial(
+    lightScheme: lightScheme,
+    darkScheme: darkScheme,
+    mode: mode,
+  );
   await tester.pumpWidget(
     MaterialApp(
-      home: MapReportScreen(
-        api: bundle.api,
-        session: bundle.session,
-        onReportTypeSelected: onTypeSelected,
+      themeMode: mode,
+      theme: ThemeData(colorScheme: lightScheme, useMaterial3: true),
+      darkTheme: ThemeData(colorScheme: darkScheme, useMaterial3: true),
+      home: shad.Theme(
+        data: shadTheme,
+        child: MapReportScreen(
+          api: bundle.api,
+          session: bundle.session,
+          onReportTypeSelected: onTypeSelected,
+        ),
       ),
     ),
   );
