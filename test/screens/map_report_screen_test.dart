@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
 import 'package:mictlan_client/services/api.dart';
 import 'package:mictlan_client/services/session_service.dart';
+import 'package:mictlan_client/services/google_maps_availability.dart';
 import 'package:mictlan_client/theme/shad_theme_builder.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
@@ -334,6 +335,16 @@ void main() {
     GoogleMapsFlutterPlatform.instance = _FakeGoogleMapsPlatform();
   });
 
+  setUp(() {
+    //6.1.- Forzamos que la API key esté disponible por defecto en las pruebas.
+    GoogleMapsAvailability.debugOverride(() async => true);
+  });
+
+  tearDown(() {
+    //6.2.- Restauramos el resolvedor original tras cada caso de prueba.
+    GoogleMapsAvailability.debugReset();
+  });
+
   testWidgets('muestra la introducción por defecto', (tester) async {
     //7.- Validamos que el mensaje inicial aparezca al crear la pantalla.
     final bundle = _TestBundle();
@@ -400,5 +411,24 @@ void main() {
     expect(bundle.client.lastIncidentType, 'pothole');
     expect(reportedType, 'pothole');
     expect(find.byKey(const Key('report-type-overlay')), findsNothing);
+  });
+
+  testWidgets('muestra instrucciones cuando falta el API key', (tester) async {
+    //11.- Simulamos la ausencia del API key para validar el flujo de contingencia.
+    GoogleMapsAvailability.debugOverride(() async => false);
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('map-unavailable-card')), findsOneWidget);
+    expect(find.byType(GoogleMap), findsNothing);
+
+    GoogleMapsAvailability.debugOverride(() async => true);
+    await tester.tap(find.text('Reintentar detección'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GoogleMap), findsOneWidget);
   });
 }

@@ -15,11 +15,8 @@ Prototype app for citizens (clients) to:
 ## Setup
 1. **Flutter SDK**: 3.22+ recommended.
 2. **Google Maps keys**:
-   - Android: replace the placeholder value in `android/app/src/main/res/values/strings.xml` for `google_maps_key` or directly in
-     `android/app/src/main/AndroidManifest.xml`:
-     ```xml
-     <meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_ANDROID_KEY"/>
-     ```
+   - Android: define `MAPS_API_KEY` in `android/local.properties` or export it in your shell before running Gradle/Flutter. The
+     client detecta en tiempo de ejecución si la clave falta y mostrará instrucciones en pantalla.
    - iOS: add to `ios/Runner/AppDelegate.swift` or `AppDelegate.m` following the plugin readme.
 3. **Backend base URL**: set in `lib/config.dart`.
 4. Bootstrap the Android Gradle wrapper (only needed once per clone):

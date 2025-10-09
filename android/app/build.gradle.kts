@@ -1,4 +1,5 @@
 import java.io.File
+import java.util.Properties
 
 plugins {
     //1.- Activa el plugin de aplicación Android siguiendo la configuración del proyecto de referencia.
@@ -7,6 +8,23 @@ plugins {
     id("kotlin-android")
     //3.- Aplica el plugin de Flutter después de los plugins de Android y Kotlin.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+//1.- mapsApiKey resuelve el API key de Google Maps desde variables locales o de entorno.
+val mapsApiKey: String by lazy {
+    //1.1.- Cargamos local.properties para admitir configuraciones en equipos de desarrollo.
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use(localProperties::load)
+    }
+
+    //1.2.- Normalizamos los valores obtenidos tanto del archivo como del entorno.
+    val fromEnv = System.getenv("MAPS_API_KEY")?.trim().orEmpty()
+    val fromFile = localProperties.getProperty("MAPS_API_KEY")?.trim().orEmpty()
+
+    //1.3.- Priorizamos la variable de entorno seguida del archivo y usamos el placeholder por defecto.
+    listOf(fromEnv, fromFile).firstOrNull { it.isNotBlank() } ?: "YOUR_ANDROID_KEY"
 }
 
 android {
@@ -35,6 +53,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        //6.1.- Exponemos el API key para que el AndroidManifest lo reciba vía placeholders.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     //7.- Porta la misma configuración de sabores citizen/admin proveniente de la app de referencia.
