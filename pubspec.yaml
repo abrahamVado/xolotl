@@ -1,15 +1,23 @@
-
 name: mictlan_client
 description: Client prototype for reporting and consulting incidents against the Mictlan Go backend.
 publish_to: "none"
 version: 0.1.0+1
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  # //1.- Ajustamos el SDK mínimo a la versión compatible con el proyecto de referencia.
+  sdk: "^3.9.2"
 
 dependencies:
   flutter:
     sdk: flutter
+  # //2.- Sincroniza las dependencias base con la aplicación de referencia para asegurar compatibilidad.
+  cupertino_icons: ^1.0.8
+  # //3.- Agrega Riverpod para la gestión de estado igual que en la app ciudadana.
+  flutter_riverpod: ^2.5.1
+  # //4.- Añade Dio para peticiones HTTP avanzadas utilizadas por la app de referencia.
+  dio: ^5.7.0
+  # //5.- Incluye Equatable para simplificar comparaciones de modelos.
+  equatable: ^2.0.5
   shadcn_flutter: ^0.0.44
   google_maps_flutter: ^2.7.0
   http: ^1.2.2
@@ -21,6 +29,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.24.0
+  # //6.- Activa las reglas de lint recomendadas para Flutter.
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
