@@ -1,4 +1,7 @@
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import org.gradle.api.GradleException
 
 plugins {
     //1.- Activa el plugin de aplicación Android siguiendo la configuración del proyecto de referencia.
@@ -94,7 +97,8 @@ fun registerFlutterApkCopyTask(buildType: String) {
                 //12.2.3.- Copia el archivo cuando está disponible y avisa si falta para facilitar el diagnóstico.
                 if (variantApk.exists()) {
                     flutterOutputDir.mkdirs()
-                    variantApk.copyTo(File(flutterOutputDir, "app-${buildType.lowercase()}.apk"), overwrite = true)
+                    val flutterApk = File(flutterOutputDir, "app-${buildType.lowercase()}.apk")
+                    safelyCopyApkReplacingExistingFile(variantApk, flutterApk)
                 } else {
                     logger.warn("No se encontró el APK ${variantApk.path} tras ejecutar ${name}.")
                 }
@@ -104,3 +108,36 @@ fun registerFlutterApkCopyTask(buildType: String) {
 
 //13.- Registra la sincronización para los tipos de compilación soportados por Flutter.
 listOf("debug", "profile", "release").forEach(::registerFlutterApkCopyTask)
+
+//14.- Copia el APK generado garantizando que un archivo previo no bloquee la operación en Windows.
+fun safelyCopyApkReplacingExistingFile(source: File, target: File) {
+    //14.1.- Intenta eliminar el archivo previo utilizando las APIs de Gradle y de Java antes de copiar.
+    if (target.exists()) {
+        //14.1.1.- Usa la operación delete de Gradle para manejar bloqueos conocidos en Windows.
+        if (!project.delete(target)) {
+            //14.1.2.- Refuerza permisos de escritura y vuelve a intentar una eliminación directa.
+            target.setWritable(true)
+            if (!target.delete()) {
+                try {
+                    //14.1.3.- Como último recurso intenta reemplazarlo usando NIO.
+                    Files.copy(
+                        source.toPath(),
+                        target.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.COPY_ATTRIBUTES,
+                    )
+                    return
+                } catch (exception: Exception) {
+                    throw GradleException("No se pudo reemplazar el APK ${target.path}", exception)
+                }
+            }
+        }
+    }
+
+    //14.2.- Finalmente realiza la copia asegurando el cierre apropiado de streams.
+    source.inputStream().use { input ->
+        target.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
+}
