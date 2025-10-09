@@ -60,5 +60,15 @@ void main() {
         throwsA(isA<MissingSessionException>()),
       );
     });
+
+    test('getIncidentTypes tolerates respuestas no exitosas', () async {
+      //1.- Se devuelve 500 para simular un backend indisponible.
+      final client = MockClient((request) async => http.Response('error', 500));
+      final api = ApiService(client: client, session: SessionService(client: client));
+
+      //2.- Se espera lista vacía para que la UI no falle al iterar resultados.
+      final tipos = await api.getIncidentTypes();
+      expect(tipos, isEmpty);
+    });
   });
 }
