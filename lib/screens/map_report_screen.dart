@@ -15,10 +15,16 @@ class MapReportScreen extends StatefulWidget {
 }
 
 class _MapReportScreenState extends State<MapReportScreen> {
+  //1.- _controller gestiona la instancia del mapa de Google.
   final Completer<GoogleMapController> _controller = Completer();
+  //2.- _selected retiene la coordenada elegida por la persona usuaria.
   LatLng? _selected;
+  //3.- _types alimenta el menú con los tipos de incidentes disponibles.
   List<Map<String, dynamic>> _types = [];
+  //4.- _loading indica si los datos iniciales aún se están obteniendo.
   bool _loading = true;
+  //5.- _introAcknowledged controla si la introducción ya fue aceptada.
+  bool _introAcknowledged = false;
 
   @override
   void initState() {
@@ -26,7 +32,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     _load();
   }
 
-  //1.- _load consulta tipos de incidente y actualiza el menú bento.
+  //6.- _load consulta tipos de incidente y actualiza el menú bento.
   Future<void> _load() async {
     final data = await apiService.getIncidentTypes();
     setState(() {
@@ -42,7 +48,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //2.- _ensureSession verifica que exista token ciudadano antes de reportar.
+  //7.- _ensureSession verifica que exista token ciudadano antes de reportar.
   Future<bool> _ensureSession() async {
     if (await sessionService.hasValidToken()) {
       return true;
@@ -56,7 +62,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     return ok == true;
   }
 
-  //3.- _onTap gestiona el flujo completo para crear el reporte ciudadano.
+  //8.- _onTap gestiona el flujo completo para crear el reporte ciudadano.
   void _onTap(LatLng latLng) async {
     setState(() => _selected = latLng);
     final type = await showModalBottomSheet<String>(
@@ -100,8 +106,92 @@ class _MapReportScreenState extends State<MapReportScreen> {
     }
   }
 
+  //9.- _acknowledgeIntro registra la interacción con la pantalla inicial.
+  void _acknowledgeIntro() {
+    setState(() => _introAcknowledged = true);
+  }
+
   @override
   Widget build(BuildContext context) {
+    //10.- build muestra la intro estilo shadcn_flutter antes del mapa.
+    if (!_introAcknowledged) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return Scaffold(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: colorScheme.outlineVariant),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withOpacity(0.08),
+                      blurRadius: 28,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.4)),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Icon(
+                            Icons.assistant_navigation,
+                            size: 72,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Reporta incidencias en tu ciudad',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Selecciona un punto en el mapa para comenzar tu reporte ciudadano.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _acknowledgeIntro,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: const Text('Click to continue'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Stack(
       children: [
         GoogleMap(
