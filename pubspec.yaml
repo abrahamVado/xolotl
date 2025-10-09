@@ -24,14 +24,12 @@ dependencies:
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^9.2.2
   uuid: ^4.5.1
-  # //6.- Agrega args para crear herramientas de línea de comando reutilizables.
-  args: ^2.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.24.0
-  # //7.- Activa las reglas de lint recomendadas para Flutter.
+  # //6.- Activa las reglas de lint recomendadas para Flutter.
   flutter_lints: ^5.0.0
 
 flutter:
