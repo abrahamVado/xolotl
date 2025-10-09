@@ -1,9 +1,12 @@
 
 import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
+
 import 'config.dart';
-import 'screens/map_report_screen.dart';
 import 'screens/consult_screen.dart';
+import 'screens/map_report_screen.dart';
 import 'services/identity.dart';
+import 'theme/shad_theme_builder.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/theme_mode_button.dart';
 
@@ -48,12 +51,20 @@ class _MictlanAppState extends State<MictlanApp> {
           //4.- Define esquemas de color consistentes para modos claro y oscuro usando Material 3.
           final colorScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
           final darkColorScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
-          return MaterialApp(
-            title: 'Mictlan Client',
-            themeMode: _controller.mode,
-            theme: ThemeData(colorScheme: colorScheme, useMaterial3: true),
-            darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
-            home: const HomeScreen(),
+          final shadTheme = ShadThemeBuilder.fromMaterial(
+            lightScheme: colorScheme,
+            darkScheme: darkColorScheme,
+            mode: _controller.mode,
+          );
+          return shad.Theme(
+            data: shadTheme,
+            child: MaterialApp(
+              title: 'Mictlan Client',
+              themeMode: _controller.mode,
+              theme: ThemeData(colorScheme: colorScheme, useMaterial3: true),
+              darkTheme: ThemeData(colorScheme: darkColorScheme, useMaterial3: true),
+              home: const HomeScreen(),
+            ),
           );
         },
       ),
