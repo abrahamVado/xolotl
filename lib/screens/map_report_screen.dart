@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 import '../services/api.dart';
 import '../services/services.dart';
+import '../services/google_maps_availability.dart';
 import '../services/session_service.dart';
 import '../widgets/report_type_overlay.dart';
 import '../widgets/otp_auth_sheet.dart';
@@ -41,22 +42,31 @@ class _MapReportScreenState extends State<MapReportScreen> {
   LatLng? _pendingLatLng;
   //7.- _showTypePicker activa la superposición flotante con los botones shadcn.
   bool _showTypePicker = false;
+  //8.- _mapAvailable determina si Google Maps está listo para mostrarse.
+  bool _mapAvailable = true;
 
-  //8.- _api expone la dependencia inyectable o recurre al singleton global.
+  //9.- _api expone la dependencia inyectable o recurre al singleton global.
   ApiService get _api => widget.api ?? apiService;
-  //9.- _session expone la sesión inyectada para pruebas o la global.
+  //10.- _session expone la sesión inyectada para pruebas o la global.
   SessionService get _session => widget.session ?? sessionService;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _initialize();
   }
 
-  //10.- _load consulta tipos de incidente y actualiza el menú bento.
-  Future<void> _load() async {
-    final data = await _api.getIncidentTypes();
+  //11.- _initialize sincroniza la disponibilidad del mapa y los tipos de reporte.
+  Future<void> _initialize() async {
+    final results = await Future.wait<dynamic>([
+      GoogleMapsAvailability.instance.isConfigured(),
+      _api.getIncidentTypes(),
+    ]);
+    if (!mounted) return;
+    final available = results[0] as bool;
+    final data = results[1] as List<Map<String, dynamic>>;
     setState(() {
+      _mapAvailable = available;
       _types = data.isEmpty
           ? [
               {'id': 'pothole', 'name': 'Pothole', 'emoji': '🕳️'},
@@ -69,7 +79,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //11.- _ensureSession verifica que exista token ciudadano antes de reportar.
+  //12.- _ensureSession verifica que exista token ciudadano antes de reportar.
   Future<bool> _ensureSession() async {
     if (await _session.hasValidToken()) {
       return true;
@@ -83,7 +93,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     return ok == true;
   }
 
-  //12.- _onTap guarda la coordenada seleccionada y despliega la superposición.
+  //13.- _onTap guarda la coordenada seleccionada y despliega la superposición.
   void _onTap(LatLng latLng) async {
     setState(() {
       _selected = latLng;
@@ -92,7 +102,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //13.- _cancelTypeSelection cierra el menú flotante sin continuar el flujo.
+  //14.- _cancelTypeSelection cierra el menú flotante sin continuar el flujo.
   void _cancelTypeSelection() {
     setState(() {
       _showTypePicker = false;
@@ -100,7 +110,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //14.- _handleTypeSelected continúa el flujo de reporte tras elegir la categoría.
+  //15.- _handleTypeSelected continúa el flujo de reporte tras elegir la categoría.
   Future<void> _handleTypeSelected(String type) async {
     final latLng = _pendingLatLng;
     setState(() {
@@ -147,14 +157,23 @@ class _MapReportScreenState extends State<MapReportScreen> {
     }
   }
 
-  //15.- _acknowledgeIntro registra la interacción con la pantalla inicial.
+  //16.- _acknowledgeIntro registra la interacción con la pantalla inicial.
   void _acknowledgeIntro() {
     setState(() => _introAcknowledged = true);
   }
 
+  //17.- _retryMapAvailability solicita nuevamente la verificación del API key.
+  Future<void> _retryMapAvailability() async {
+    final available = await GoogleMapsAvailability.instance.isConfigured();
+    if (!mounted) return;
+    setState(() {
+      _mapAvailable = available;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    //10.- build muestra la intro estilo shadcn_flutter antes del mapa.
+    //18.- build muestra la intro estilo shadcn_flutter antes del mapa.
     if (!_introAcknowledged) {
       final colorScheme = Theme.of(context).colorScheme;
       return Scaffold(
@@ -165,6 +184,21 @@ class _MapReportScreenState extends State<MapReportScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: _IntroView(onContinue: _acknowledgeIntro),
+            ),
+          ),
+        ),
+      );
+    }
+    if (!_mapAvailable) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return Scaffold(
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: _MapUnavailableView(onRetry: _retryMapAvailability),
             ),
           ),
         ),
@@ -217,9 +251,9 @@ class _MapReportScreenState extends State<MapReportScreen> {
   }
 }
 
-//16.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
+//19.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
 class _IntroView extends StatelessWidget {
-  //17.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
+  //20.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
   final VoidCallback onContinue;
 
   const _IntroView({
@@ -229,9 +263,9 @@ class _IntroView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //18.- theme centraliza tipografías y colores calculados por Flutter.
+    //21.- theme centraliza tipografías y colores calculados por Flutter.
     final theme = Theme.of(context);
-    //19.- colorScheme reduce accesos repetidos al esquema cromático.
+    //22.- colorScheme reduce accesos repetidos al esquema cromático.
     final colorScheme = theme.colorScheme;
     return shad.SurfaceCard(
       key: const Key('map-intro-card'),
@@ -286,6 +320,79 @@ class _IntroView extends StatelessWidget {
               shape: shad.ButtonShape.rectangle,
               child: const shad.Text('Click to continue'),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+//23.- _MapUnavailableView muestra instrucciones cuando falta el API key de Google Maps.
+class _MapUnavailableView extends StatelessWidget {
+  //24.- onRetry vuelve a solicitar la verificación del API key configurado.
+  final VoidCallback onRetry;
+
+  const _MapUnavailableView({
+    super.key,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    //25.- theme reutiliza las tipografías configuradas por Material 3.
+    final theme = Theme.of(context);
+    //26.- colorScheme unifica los colores dentro del contenedor de información.
+    final colorScheme = theme.colorScheme;
+    return shad.SurfaceCard(
+      key: const Key('map-unavailable-card'),
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+      filled: true,
+      fillColor: colorScheme.surface,
+      borderRadius: BorderRadius.circular(24),
+      borderColor: colorScheme.outlineVariant,
+      boxShadow: [
+        BoxShadow(
+          color: colorScheme.shadow.withOpacity(0.08),
+          blurRadius: 28,
+          offset: const Offset(0, 20),
+        ),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.map_outlined, size: 60),
+          const SizedBox(height: 24),
+          shad.Text(
+            'Configura Google Maps',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          shad.Text(
+            'Agrega tu API key de Android en local.properties como MAPS_API_KEY '
+            'o exporta la variable de entorno MAPS_API_KEY antes de compilar.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 20),
+          shad.Text(
+            'Después vuelve a intentar para cargar el mapa ciudadano.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 28),
+          shad.PrimaryButton(
+            onPressed: onRetry,
+            density: shad.ButtonDensity.comfortable,
+            shape: shad.ButtonShape.rectangle,
+            child: const shad.Text('Reintentar detección'),
           ),
         ],
       ),
