@@ -40,6 +40,8 @@ android {
     productFlavors {
         create("citizen") {
             dimension = "app"
+            //7.1.- Define este sabor como predeterminado para que Flutter pueda compilar sin especificar uno.
+            isDefault = true
             applicationIdSuffix = ".citizen"
             versionNameSuffix = "-citizen"
         }
