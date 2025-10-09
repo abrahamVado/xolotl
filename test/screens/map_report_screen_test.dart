@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
 import 'package:mictlan_client/services/api.dart';
 import 'package:mictlan_client/services/session_service.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
 //1.- _FakeGoogleMapsPlatform neutraliza las dependencias de plataforma del mapa.
 class _FakeGoogleMapsPlatform extends GoogleMapsFlutterPlatform {
@@ -324,6 +325,8 @@ void main() {
     await _pumpReportScreen(tester, bundle);
 
     expect(find.text('Click to continue'), findsOneWidget);
+    expect(find.byKey(const Key('map-intro-card')), findsOneWidget);
+    expect(find.byType(shad.PrimaryButton), findsOneWidget);
     expect(find.byType(GoogleMap), findsNothing);
   });
 
@@ -351,6 +354,10 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('report-type-overlay')), findsOneWidget);
+    expect(
+      () => tester.widget<shad.SurfaceCard>(find.byKey(const Key('report-type-overlay'))),
+      returnsNormally,
+    );
   });
 
   testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {

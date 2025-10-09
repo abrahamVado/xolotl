@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 import '../services/api.dart';
 import '../services/services.dart';
 import '../services/session_service.dart';
@@ -163,70 +164,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.shadow.withOpacity(0.08),
-                      blurRadius: 28,
-                      offset: const Offset(0, 18),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.4)),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Icon(
-                            Icons.assistant_navigation,
-                            size: 72,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Reporta incidencias en tu ciudad',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Selecciona un punto en el mapa para comenzar tu reporte ciudadano.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _acknowledgeIntro,
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          child: const Text('Click to continue'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: _IntroView(onContinue: _acknowledgeIntro),
             ),
           ),
         ),
@@ -275,6 +213,82 @@ class _MapReportScreenState extends State<MapReportScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+//16.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
+class _IntroView extends StatelessWidget {
+  //17.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
+  final VoidCallback onContinue;
+
+  const _IntroView({
+    super.key,
+    required this.onContinue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    //18.- theme centraliza tipografías y colores calculados por Flutter.
+    final theme = Theme.of(context);
+    //19.- colorScheme reduce accesos repetidos al esquema cromático.
+    final colorScheme = theme.colorScheme;
+    return shad.SurfaceCard(
+      key: const Key('map-intro-card'),
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+      filled: true,
+      fillColor: colorScheme.surface,
+      borderRadius: BorderRadius.circular(28),
+      borderColor: colorScheme.outlineVariant,
+      boxShadow: [
+        BoxShadow(
+          color: colorScheme.shadow.withOpacity(0.08),
+          blurRadius: 28,
+          offset: const Offset(0, 18),
+        ),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          shad.SurfaceCard(
+            padding: const EdgeInsets.all(20),
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(20),
+            borderColor: colorScheme.outlineVariant.withOpacity(0.4),
+            child: const Icon(
+              Icons.assistant_navigation,
+              size: 72,
+            ),
+          ),
+          const SizedBox(height: 32),
+          shad.Text(
+            'Reporta incidencias en tu ciudad',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          shad.Text(
+            'Selecciona un punto en el mapa para comenzar tu reporte ciudadano.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: shad.PrimaryButton(
+              onPressed: onContinue,
+              density: shad.ButtonDensity.comfortable,
+              shape: shad.ButtonShape.rectangle,
+              child: const shad.Text('Click to continue'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
