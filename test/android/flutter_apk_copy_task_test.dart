@@ -16,5 +16,7 @@ void main() {
       appGradle.contains('listOf("debug", "profile", "release").forEach(::registerFlutterApkCopyTask)'),
       isTrue,
     );
+    //5.- Verifica que la copia emplee la nueva utilidad segura frente a archivos bloqueados.
+    expect(appGradle.contains('safelyCopyApkReplacingExistingFile'), isTrue);
   });
 }
