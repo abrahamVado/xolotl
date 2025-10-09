@@ -73,44 +73,41 @@ class ReportTypeOverlay extends StatelessWidget {
             ),
           );
 
-    return Material(
-      color: Colors.transparent,
-      child: shad.Card(
-        key: const Key('report-type-overlay'),
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-        filled: true,
-        fillColor: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.12),
-            blurRadius: 32,
-            offset: const Offset(0, 24),
-          ),
-        ],
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: shad.Text(
-                    'Selecciona el tipo de reporte',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                shad.GhostButton(
-                  onPressed: onDismiss,
-                  density: shad.ButtonDensity.icon,
-                  child: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            grid,
-          ],
+    return shad.SurfaceCard(
+      key: const Key('report-type-overlay'),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+      filled: true,
+      fillColor: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(28),
+      borderColor: theme.colorScheme.outlineVariant,
+      boxShadow: [
+        BoxShadow(
+          color: theme.colorScheme.shadow.withOpacity(0.12),
+          blurRadius: 32,
+          offset: const Offset(0, 24),
         ),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: shad.Text(
+                  'Selecciona el tipo de reporte',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              shad.IconButton.ghost(
+                onPressed: onDismiss,
+                child: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          grid,
+        ],
       ),
     );
   }
