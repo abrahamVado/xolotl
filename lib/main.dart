@@ -13,6 +13,7 @@ import 'services/identity.dart';
 import 'services/notification_service.dart';
 import 'theme/shad_theme_builder.dart';
 import 'theme/theme_controller.dart';
+import 'widgets/initialization_status_view.dart';
 import 'widgets/theme_mode_button.dart';
 
 //1.- firebaseMessagingBackgroundHandler procesa mensajes cuando la app está cerrada.
@@ -24,15 +25,102 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await service.handleBackgroundMessage(message);
 }
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  final container = ProviderContainer();
-  await Identity.ensureIdentity();
-  await NotificationService.initialize(container: container);
-  FirebaseMessagingPlatform.onBackgroundMessage = firebaseMessagingBackgroundHandler;
-  //2.- UncontrolledProviderScope reutiliza el contenedor configurado durante la inicialización.
-  runApp(UncontrolledProviderScope(container: container, child: const MictlanApp()));
+  //2.- runApp delega la inicialización pesada a BootstrapApp para mostrar una UI temprana.
+  runApp(const BootstrapApp());
+}
+
+//2.- BootstrapApp muestra una pantalla interactiva mientras se completan las tareas críticas.
+class BootstrapApp extends StatefulWidget {
+  const BootstrapApp({super.key});
+
+  @override
+  State<BootstrapApp> createState() => _BootstrapAppState();
+}
+
+class _BootstrapAppState extends State<BootstrapApp> {
+  late Future<ProviderContainer> _initialization;
+  ProviderContainer? _container;
+  Object? _lastError;
+  StackTrace? _lastStackTrace;
+
+  @override
+  void initState() {
+    super.initState();
+    //1.- initState dispara el proceso de arranque y conserva el Future para el FutureBuilder.
+    _initialization = _initialize();
+  }
+
+  Future<ProviderContainer> _initialize() async {
+    final container = ProviderContainer();
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessagingPlatform.onBackgroundMessage = firebaseMessagingBackgroundHandler;
+      await Identity.ensureIdentity();
+      await NotificationService.initialize(container: container);
+      _lastError = null;
+      _lastStackTrace = null;
+      return container;
+    } catch (error, stackTrace) {
+      _lastError = error;
+      _lastStackTrace = stackTrace;
+      container.dispose();
+      rethrow;
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _initialization = _initialize();
+    });
+  }
+
+  @override
+  void dispose() {
+    //2.- dispose limpia el contenedor cuando la app se cierra.
+    _container?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //3.- FutureBuilder decide entre la UI de progreso, error o la app completa.
+    return FutureBuilder<ProviderContainer>(
+      future: _initialization,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const MaterialApp(
+            home: InitializationStatusView(
+              title: 'Preparando aplicación',
+              message: 'Inicializando servicios, esto puede tardar unos segundos.',
+              showLoader: true,
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          final detailsBuffer = StringBuffer();
+          if (_lastError != null) {
+            detailsBuffer.writeln(_lastError);
+          }
+          if (_lastStackTrace != null) {
+            detailsBuffer.writeln();
+            detailsBuffer.writeln(_lastStackTrace);
+          }
+          return MaterialApp(
+            home: InitializationStatusView(
+              title: 'No se pudo iniciar',
+              message: 'Revisa los detalles y vuelve a intentarlo.',
+              details: detailsBuffer.isEmpty ? 'Error desconocido.' : detailsBuffer.toString(),
+              onRetry: _retry,
+            ),
+          );
+        }
+        _container = snapshot.data;
+        return UncontrolledProviderScope(container: _container!, child: const MictlanApp());
+      },
+    );
+  }
 }
 
 class MictlanApp extends StatefulWidget {
