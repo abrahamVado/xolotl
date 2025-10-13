@@ -3,11 +3,13 @@ import 'dart:typed_data';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
+import 'package:mictlan_client/providers/folio_providers.dart';
 import 'package:mictlan_client/services/api.dart';
 import 'package:mictlan_client/services/folio_repository.dart';
 import 'package:mictlan_client/services/session_service.dart';
@@ -316,16 +318,21 @@ Future<void> _pumpReportScreen(
     mode: mode,
   );
   await tester.pumpWidget(
-    MaterialApp(
-      themeMode: mode,
-      theme: ThemeData(colorScheme: lightScheme, useMaterial3: true),
-      darkTheme: ThemeData(colorScheme: darkScheme, useMaterial3: true),
-      home: shad.Theme(
-        data: shadTheme,
-        child: MapReportScreen(
-          api: bundle.api,
-          session: bundle.session,
-          onReportTypeSelected: onTypeSelected,
+    ProviderScope(
+      overrides: [
+        folioRepositoryProvider.overrideWithValue(bundle.folios),
+      ],
+      child: MaterialApp(
+        themeMode: mode,
+        theme: ThemeData(colorScheme: lightScheme, useMaterial3: true),
+        darkTheme: ThemeData(colorScheme: darkScheme, useMaterial3: true),
+        home: shad.Theme(
+          data: shadTheme,
+          child: MapReportScreen(
+            api: bundle.api,
+            session: bundle.session,
+            onReportTypeSelected: onTypeSelected,
+          ),
         ),
       ),
     ),
