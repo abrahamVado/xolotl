@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
 import 'config.dart';
+import 'firebase_options.dart';
 import 'screens/consult_screen.dart';
 import 'screens/map_report_screen.dart';
 import 'services/identity.dart';
+import 'services/firebase_initializer.dart';
 import 'services/notification_service.dart';
 import 'theme/shad_theme_builder.dart';
 import 'theme/theme_controller.dart';
@@ -20,7 +22,8 @@ import 'widgets/theme_mode_button.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  //2.- initializeDefault garantiza que la instancia esté lista incluso en aislamientos secundarios.
+  await FirebaseInitializer.initializeDefault(options: DefaultFirebaseOptions.currentPlatform);
   final service = await NotificationService.background();
   await service.handleBackgroundMessage(message);
 }
@@ -55,7 +58,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
   Future<ProviderContainer> _initialize() async {
     final container = ProviderContainer();
     try {
-      await Firebase.initializeApp();
+      //1.- initializeDefault aporta opciones explícitas y mensajes de error más claros.
+      await FirebaseInitializer.initializeDefault(options: DefaultFirebaseOptions.currentPlatform);
       FirebaseMessagingPlatform.onBackgroundMessage = firebaseMessagingBackgroundHandler;
       await Identity.ensureIdentity();
       await NotificationService.initialize(container: container);
