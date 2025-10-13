@@ -84,10 +84,30 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
       _mapAvailable = available;
       _types = data.isEmpty
           ? [
-              {'id': 'pothole', 'name': 'Pothole', 'emoji': '🕳️'},
-              {'id': 'light', 'name': 'Street Light', 'emoji': '💡'},
-              {'id': 'trash', 'name': 'Trash', 'emoji': '🗑️'},
-              {'id': 'water', 'name': 'Water Leak', 'emoji': '💧'},
+              {
+                'id': 'pothole',
+                'name': 'Pothole',
+                'emoji': '🕳️',
+                'reportType': 'pothole',
+              },
+              {
+                'id': 'light',
+                'name': 'Street Light',
+                'emoji': '💡',
+                'reportType': 'light',
+              },
+              {
+                'id': 'trash',
+                'name': 'Trash',
+                'emoji': '🗑️',
+                'reportType': 'trash',
+              },
+              {
+                'id': 'water',
+                'name': 'Water Leak',
+                'emoji': '💧',
+                'reportType': 'water',
+              },
             ]
           : data;
       _loading = false;

@@ -272,10 +272,30 @@ class _RecordingHttpClient extends http.BaseClient {
 
 //3.- _testIncidentTypes reproduce el catálogo por defecto para las pruebas.
 const List<Map<String, dynamic>> _testIncidentTypes = [
-  {'id': 'pothole', 'name': 'Pothole', 'emoji': '🕳️'},
-  {'id': 'light', 'name': 'Street Light', 'emoji': '💡'},
-  {'id': 'trash', 'name': 'Trash', 'emoji': '🗑️'},
-  {'id': 'water', 'name': 'Water Leak', 'emoji': '💧'},
+  {
+    'id': 'pothole',
+    'name': 'Pothole',
+    'emoji': '🕳️',
+    'reportType': 'incident.pothole',
+  },
+  {
+    'id': 'light',
+    'name': 'Street Light',
+    'emoji': '💡',
+    'reportType': 'incident.light',
+  },
+  {
+    'id': 'trash',
+    'name': 'Trash',
+    'emoji': '🗑️',
+    'reportType': 'incident.trash',
+  },
+  {
+    'id': 'water',
+    'name': 'Water Leak',
+    'emoji': '💧',
+    'reportType': 'incident.water',
+  },
 ];
 
 //4.- _TestBundle agrupa cliente HTTP, sesión y servicio API para cada caso.
@@ -432,8 +452,8 @@ void main() {
     await tester.tap(find.text('Enviar reporte'));
     await tester.pumpAndSettle();
 
-    expect(bundle.client.lastIncidentType, 'pothole');
-    expect(reportedType, 'pothole');
+    expect(bundle.client.lastIncidentType, 'incident.pothole');
+    expect(reportedType, 'incident.pothole');
     expect(find.byKey(const Key('report-type-overlay')), findsNothing);
   });
 
