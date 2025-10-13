@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
 //1.- _ReportTypeAssets centraliza la lógica de nombres para los recursos gráficos.
@@ -29,13 +30,20 @@ class _ReportTypeAssets {
       return directAsset;
     }
     final sanitized = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'_+'), '_');
-    final trimmed = sanitized.trimLeft('_').trimRight('_');
+    final trimmed = sanitized
+        .replaceFirst(RegExp(r'^_+'), '')
+        .replaceFirst(RegExp(r'_+$'), '');
     if (trimmed.isEmpty) {
       return _defaultAsset;
     }
     return 'assets/icons/$trimmed.png';
   }
 }
+
+//12.- resolveReportTypeAsset expone la transformación para validarla con pruebas unitarias.
+@visibleForTesting
+String resolveReportTypeAsset(Map<String, dynamic> type) =>
+    _ReportTypeAssets.resolve(type);
 
 //5.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
 class ReportTypeOverlay extends StatelessWidget {
