@@ -248,8 +248,32 @@ void main() {
       expect(find.text('Imagen no disponible'), findsOneWidget);
     });
 
+    testWidgets('constrains report type icons to a fixed square dimension', (tester) async {
+      //31.- Montamos el overlay con un catálogo local para medir el tamaño del icono.
+      await tester.pumpWidget(
+        _wrapWithThemes(
+          Scaffold(
+            body: ReportTypeOverlay(
+              types: const [
+                {'id': 'pothole', 'name': 'Bache'},
+              ],
+              onSelected: _noopOnSelected,
+              onDismiss: _noopOnDismiss,
+            ),
+          ),
+        ),
+      );
+
+      //32.- Medimos el render del widget Image para asegurar el tamaño deseado.
+      final imageSize = tester.getSize(find.byKey(const Key('report-type-image-pothole')));
+
+      //33.- Confirmamos que el ancho y el alto coincidan con los 80 píxeles pedidos.
+      expect(imageSize.width, 80);
+      expect(imageSize.height, 80);
+    });
+
     testWidgets('adapts grid columns to available width', (tester) async {
-      //31.- Configuramos múltiples escenarios de ancho para evaluar la retícula responsiva.
+      //34.- Configuramos múltiples escenarios de ancho para evaluar la retícula responsiva.
       const mockTypes = [
         {'id': 'pothole', 'name': 'Bache'},
         {'id': 'light', 'name': 'Alumbrado'},
@@ -257,7 +281,7 @@ void main() {
         {'id': 'water', 'name': 'Fuga'},
       ];
 
-      //32.- Validamos que en 320 px el grid utilice dos columnas ideales para móviles.
+      //35.- Validamos que en 320 px el grid utilice dos columnas ideales para móviles.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -280,7 +304,7 @@ void main() {
           mobileGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(mobileDelegate.crossAxisCount, 2);
 
-      //33.- Repite la verificación para un ancho de escritorio que debe saturar el máximo.
+      //36.- Repite la verificación para un ancho de escritorio que debe saturar el máximo.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -306,13 +330,13 @@ void main() {
   });
 }
 
-//34.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
+//37.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
 void _noopOnSelected(String _) {}
 
-//35.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
+//38.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
 void _noopOnDismiss() {}
 
-//36.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
+//39.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
 Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   final lightScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
   final darkScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
@@ -332,13 +356,13 @@ Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   );
 }
 
-//37.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
+//40.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
 class _FakeHttpClient extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async => _FakeHttpClientRequest(url);
 }
 
-//38.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
+//41.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
 class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   _FakeHttpClientRequest(this._uri);
 
@@ -430,7 +454,7 @@ class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   void writeln([Object? obj = '']) {}
 }
 
-//39.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
+//42.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
 class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResponse {
   _FakeHttpClientResponse();
 
@@ -492,7 +516,7 @@ class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientRes
   Future<HttpClientResponse> redirect([String? method, Uri? url, bool? followLoops]) async => this;
 }
 
-//40.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
+//43.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
 class _FakeHttpHeaders extends Fake implements HttpHeaders {
   final Map<String, List<String>> _headers = {};
 
@@ -512,13 +536,13 @@ class _FakeHttpHeaders extends Fake implements HttpHeaders {
   List<String>? operator [](String name) => _headers[name.toLowerCase()];
 }
 
-//41.- _FailingHttpClient simula fallos para activar la ruta de error de imágenes.
+//44.- _FailingHttpClient simula fallos para activar la ruta de error de imágenes.
 class _FailingHttpClient extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async => _FailingHttpClientRequest(url);
 }
 
-//42.- _FailingHttpClientRequest produce un error al cerrar la conexión simulada.
+//45.- _FailingHttpClientRequest produce un error al cerrar la conexión simulada.
 class _FailingHttpClientRequest extends Fake implements HttpClientRequest {
   _FailingHttpClientRequest(this._uri);
 

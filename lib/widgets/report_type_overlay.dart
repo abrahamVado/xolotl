@@ -360,8 +360,8 @@ class _ReportTypeTileImage extends StatelessWidget {
     return FittedBox(
       fit: BoxFit.contain,
       child: SizedBox(
-        width: 120,
-        height: 120,
+        width: 80,
+        height: 80,
         child: image,
       ),
     );
@@ -410,8 +410,8 @@ class _ReportTypeImageError extends StatelessWidget {
 
     return SizedBox(
       key: Key('report-type-image-error-$id'),
-      width: 120,
-      height: 120,
+      width: 80,
+      height: 80,
       child: Stack(
         alignment: Alignment.center,
         children: [
