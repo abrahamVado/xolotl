@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 import '../services/api.dart';
+import '../services/folio_repository.dart';
 import '../services/services.dart';
 import '../services/google_maps_availability.dart';
 import '../services/session_service.dart';
@@ -14,12 +15,14 @@ import '../widgets/report_details_dialog.dart';
 class MapReportScreen extends StatefulWidget {
   final ApiService? api;
   final SessionService? session;
+  final FolioRepository? folios;
   final ValueChanged<String>? onReportTypeSelected;
 
   const MapReportScreen({
     super.key,
     this.api,
     this.session,
+    this.folios,
     this.onReportTypeSelected,
   });
 
@@ -44,11 +47,17 @@ class _MapReportScreenState extends State<MapReportScreen> {
   bool _showTypePicker = false;
   //8.- _mapAvailable determina si Google Maps está listo para mostrarse.
   bool _mapAvailable = true;
+  //9.- _folioEntries contiene los folios cargados desde el repositorio.
+  List<FolioEntry> _folioEntries = const [];
+  //10.- _markers mantiene todos los marcadores renderizados en el mapa.
+  Set<Marker> _markers = <Marker>{};
 
-  //9.- _api expone la dependencia inyectable o recurre al singleton global.
+  //11.- _api expone la dependencia inyectable o recurre al singleton global.
   ApiService get _api => widget.api ?? apiService;
-  //10.- _session expone la sesión inyectada para pruebas o la global.
+  //12.- _session expone la sesión inyectada para pruebas o la global.
   SessionService get _session => widget.session ?? sessionService;
+  //13.- _folioRepo centraliza el repositorio encargado de persistir folios.
+  FolioRepository get _folioRepo => widget.folios ?? folioRepository;
 
   @override
   void initState() {
@@ -56,7 +65,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     _initialize();
   }
 
-  //11.- _initialize sincroniza la disponibilidad del mapa y los tipos de reporte.
+  //14.- _initialize sincroniza la disponibilidad del mapa y los tipos de reporte.
   Future<void> _initialize() async {
     final results = await Future.wait<dynamic>([
       GoogleMapsAvailability.instance.isConfigured(),
@@ -77,9 +86,45 @@ class _MapReportScreenState extends State<MapReportScreen> {
           : data;
       _loading = false;
     });
+    await _loadStoredFolios();
   }
 
-  //12.- _ensureSession verifica que exista token ciudadano antes de reportar.
+  //15.- _loadStoredFolios restaura los marcadores persistidos en la sesión.
+  Future<void> _loadStoredFolios() async {
+    final entries = await _folioRepo.loadForCurrentSession();
+    if (!mounted) return;
+    setState(() {
+      _folioEntries = entries;
+      _markers = _buildMarkers();
+    });
+  }
+
+  //16.- _buildMarkers compone el conjunto de marcadores a mostrar en el mapa.
+  Set<Marker> _buildMarkers({LatLng? selectionOverride}) {
+    final markers = <Marker>{};
+    for (final entry in _folioEntries) {
+      markers.add(
+        Marker(
+          markerId: MarkerId('folio-${entry.id}'),
+          position: LatLng(entry.latitude, entry.longitude),
+          infoWindow: InfoWindow(title: entry.id, snippet: entry.type),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        ),
+      );
+    }
+    final selection = selectionOverride ?? _selected;
+    if (selection != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('selected'),
+          position: selection,
+        ),
+      );
+    }
+    return markers;
+  }
+
+  //17.- _ensureSession verifica que exista token ciudadano antes de reportar.
   Future<bool> _ensureSession() async {
     if (await _session.hasValidToken()) {
       return true;
@@ -93,16 +138,17 @@ class _MapReportScreenState extends State<MapReportScreen> {
     return ok == true;
   }
 
-  //13.- _onTap guarda la coordenada seleccionada y despliega la superposición.
+  //18.- _onTap guarda la coordenada seleccionada y despliega la superposición.
   void _onTap(LatLng latLng) async {
     setState(() {
       _selected = latLng;
       _pendingLatLng = latLng;
       _showTypePicker = true;
+      _markers = _buildMarkers(selectionOverride: latLng);
     });
   }
 
-  //14.- _cancelTypeSelection cierra el menú flotante sin continuar el flujo.
+  //19.- _cancelTypeSelection cierra el menú flotante sin continuar el flujo.
   void _cancelTypeSelection() {
     setState(() {
       _showTypePicker = false;
@@ -110,7 +156,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
     });
   }
 
-  //15.- _handleTypeSelected continúa el flujo de reporte tras elegir la categoría.
+  //20.- _handleTypeSelected continúa el flujo de reporte tras elegir la categoría.
   Future<void> _handleTypeSelected(String type) async {
     final latLng = _pendingLatLng;
     setState(() {
@@ -139,7 +185,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
       builder: (_) => ReportDetailsDialog(phone: phone),
     );
     if (result == null) return;
-    final res = await _api.submitReport(
+    final entry = await _api.submitReport(
       incidentTypeId: type,
       description: result.description,
       contactEmail: result.email,
@@ -148,21 +194,34 @@ class _MapReportScreenState extends State<MapReportScreen> {
       address: result.address,
     );
     if (!mounted) return;
-    if (res != null) {
-      final folio = res['folio'] ?? 'unknown';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Report sent. Folio: $folio')));
+    if (entry != null) {
+      setState(() {
+        final updated = List<FolioEntry>.from(_folioEntries);
+        final index = updated.indexWhere((e) => e.id == entry.id);
+        if (index >= 0) {
+          updated[index] = entry;
+        } else {
+          updated.add(entry);
+          updated.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        }
+        _folioEntries = updated;
+        _selected = null;
+        _markers = _buildMarkers();
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Report sent. Folio: ${entry.id}')));
     } else {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Failed to send report')));
     }
   }
 
-  //16.- _acknowledgeIntro registra la interacción con la pantalla inicial.
+  //21.- _acknowledgeIntro registra la interacción con la pantalla inicial.
   void _acknowledgeIntro() {
     setState(() => _introAcknowledged = true);
   }
 
-  //17.- _retryMapAvailability solicita nuevamente la verificación del API key.
+  //22.- _retryMapAvailability solicita nuevamente la verificación del API key.
   Future<void> _retryMapAvailability() async {
     final available = await GoogleMapsAvailability.instance.isConfigured();
     if (!mounted) return;
@@ -173,7 +232,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    //18.- build muestra la intro estilo shadcn_flutter antes del mapa.
+    //23.- build muestra la intro estilo shadcn_flutter antes del mapa.
     if (!_introAcknowledged) {
       final colorScheme = Theme.of(context).colorScheme;
       return Scaffold(
@@ -211,11 +270,7 @@ class _MapReportScreenState extends State<MapReportScreen> {
               const CameraPosition(target: LatLng(18.0010, -94.5597), zoom: 12.5),
           onMapCreated: (c) => _controller.complete(c),
           onTap: _onTap,
-          markers: _selected == null
-              ? {}
-              : {
-                  Marker(markerId: const MarkerId('selected'), position: _selected!),
-                },
+          markers: _markers,
           myLocationButtonEnabled: true,
           myLocationEnabled: true,
         ),
@@ -252,9 +307,9 @@ class _MapReportScreenState extends State<MapReportScreen> {
   }
 }
 
-//19.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
+//24.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
 class _IntroView extends StatelessWidget {
-  //20.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
+  //25.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
   final VoidCallback onContinue;
 
   const _IntroView({
@@ -264,9 +319,9 @@ class _IntroView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //21.- theme centraliza tipografías y colores calculados por Flutter.
+    //26.- theme centraliza tipografías y colores calculados por Flutter.
     final theme = Theme.of(context);
-    //22.- colorScheme reduce accesos repetidos al esquema cromático.
+    //27.- colorScheme reduce accesos repetidos al esquema cromático.
     final colorScheme = theme.colorScheme;
     return shad.SurfaceCard(
       key: const Key('map-intro-card'),
@@ -328,9 +383,9 @@ class _IntroView extends StatelessWidget {
   }
 }
 
-//23.- _MapUnavailableView muestra instrucciones cuando falta el API key de Google Maps.
+//28.- _MapUnavailableView muestra instrucciones cuando falta el API key de Google Maps.
 class _MapUnavailableView extends StatelessWidget {
-  //24.- onRetry vuelve a solicitar la verificación del API key configurado.
+  //29.- onRetry vuelve a solicitar la verificación del API key configurado.
   final VoidCallback onRetry;
 
   const _MapUnavailableView({
@@ -340,9 +395,9 @@ class _MapUnavailableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //25.- theme reutiliza las tipografías configuradas por Material 3.
+    //30.- theme reutiliza las tipografías configuradas por Material 3.
     final theme = Theme.of(context);
-    //26.- colorScheme unifica los colores dentro del contenedor de información.
+    //31.- colorScheme unifica los colores dentro del contenedor de información.
     final colorScheme = theme.colorScheme;
     return shad.SurfaceCard(
       key: const Key('map-unavailable-card'),

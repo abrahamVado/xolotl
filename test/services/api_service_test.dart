@@ -3,11 +3,12 @@ import 'package:test/test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:xolotl/services/api.dart';
+import 'package:xolotl/services/folio_repository.dart';
 import 'package:xolotl/services/session_service.dart';
 
 void main() {
   group('ApiService', () {
-    test('submitReport attaches authorization header and body', () async {
+    test('submitReport attaches authorization header, body and saves folio', () async {
       http.Request? captured;
       final client = MockClient((request) async {
         captured = request;
@@ -24,7 +25,11 @@ void main() {
           ),
         ),
       );
-      final api = ApiService(client: client, session: session);
+      final folios = FolioRepository(
+        storage: InMemoryFolioStorage(),
+        session: session,
+      );
+      final api = ApiService(client: client, session: session, folios: folios);
 
       final response = await api.submitReport(
         incidentTypeId: 'pothole',
@@ -36,17 +41,23 @@ void main() {
       );
 
       expect(response, isNotNull);
+      expect(response, isA<FolioEntry>());
+      expect(response!.id, 'F-123');
+      expect(response.latitude, 19.3);
       expect(captured, isNotNull);
       expect(captured!.headers['authorization'], 'Bearer jwt-token');
       final body = jsonDecode(captured!.body) as Map<String, dynamic>;
       expect(body['incidentTypeId'], 'pothole');
       expect(body['contactPhone'], '+521234567890');
+      final persisted = await folios.loadForCurrentSession();
+      expect(persisted, contains(response));
     });
 
     test('submitReport throws when session missing', () async {
       final client = MockClient((request) async => http.Response('unauthorized', 401));
       final session = SessionService(client: client, storage: InMemoryTokenStorage());
-      final api = ApiService(client: client, session: session);
+      final folios = FolioRepository(storage: InMemoryFolioStorage(), session: session);
+      final api = ApiService(client: client, session: session, folios: folios);
 
       expect(
         () => api.submitReport(
@@ -64,7 +75,9 @@ void main() {
     test('getIncidentTypes tolerates respuestas no exitosas', () async {
       //1.- Se devuelve 500 para simular un backend indisponible.
       final client = MockClient((request) async => http.Response('error', 500));
-      final api = ApiService(client: client, session: SessionService(client: client));
+      final session = SessionService(client: client);
+      final folios = FolioRepository(storage: InMemoryFolioStorage(), session: session);
+      final api = ApiService(client: client, session: session, folios: folios);
 
       //2.- Se espera lista vacía para que la UI no falle al iterar resultados.
       final tipos = await api.getIncidentTypes();
