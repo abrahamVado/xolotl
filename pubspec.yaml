@@ -25,23 +25,17 @@ dependencies:
   uuid: ^4.5.1
   # //6.- Habilita el sistema de diseño shadcn para alinear tarjetas y botones personalizados.
   shadcn_flutter: ^0.0.44
-  # //7.- firebase_core inicializa el SDK de Firebase antes de activar mensajería push.
-  firebase_core: ^3.4.0
-  # //8.- firebase_messaging administra los tokens FCM y entrega callbacks en primer/plano de fondo.
-  firebase_messaging: ^15.1.3
-  # //9.- flutter_local_notifications muestra notificaciones nativas cuando llega un mensaje de datos.
-  flutter_local_notifications: ^17.2.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.24.0
-  # //10.- Activa las reglas de lint recomendadas para Flutter.
+  # //7.- Activa las reglas de lint recomendadas para Flutter.
   flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/
-    # //11.- assets/icons contendrá los placeholders de íconos suministrados externamente.
+    # //8.- assets/icons contendrá los placeholders de íconos suministrados externamente.
     - assets/icons/

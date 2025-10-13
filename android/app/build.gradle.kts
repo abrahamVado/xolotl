@@ -38,8 +38,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-        //3.1.- Habilitamos core library desugaring para soportar APIs Java 8 usadas por notificaciones.
-        isCoreLibraryDesugaringEnabled = true
     }
 
     //4.- Configura Kotlin para emitir bytecode objetivo Java 11.
@@ -93,8 +91,6 @@ flutter {
 dependencies {
     //10.- Agrega Material Components para proporcionar el tema usado por los estilos Android.
     implementation("com.google.android.material:material:1.12.0")
-    //10.1.- Integra las librerías de desugaring que requiere flutter_local_notifications.
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 //11.- Define el sabor predeterminado que Flutter debe usar para generar los artefactos esperados.
