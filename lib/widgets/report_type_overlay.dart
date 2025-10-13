@@ -64,19 +64,26 @@ class _ReportTypeAssets {
       final sanitized = raw
           .replaceAll('\\', '/')
           .replaceFirst(RegExp(r'^(\./)+'), '')
-          .replaceFirst(RegExp(r'^/+'), '');
+          .trim();
       if (sanitized.isEmpty) {
         continue;
       }
+      if (_isNetworkSource(sanitized)) {
+        return sanitized;
+      }
+      final normalized = sanitized.replaceFirst(RegExp(r'^/+'), '');
+      if (normalized.isEmpty) {
+        continue;
+      }
       final candidates = <String>[];
-      if (sanitized.startsWith('internal/')) {
-        candidates.add(sanitized);
-      } else if (sanitized.startsWith('assets/')) {
-        candidates.add('internal/$sanitized');
-        candidates.add(sanitized);
+      if (normalized.startsWith('internal/')) {
+        candidates.add(normalized);
+      } else if (normalized.startsWith('assets/')) {
+        candidates.add('internal/$normalized');
+        candidates.add(normalized);
       } else {
-        candidates.add('internal/assets/$sanitized');
-        candidates.add('assets/$sanitized');
+        candidates.add('internal/assets/$normalized');
+        candidates.add('assets/$normalized');
       }
       final resolved = candidates.firstWhere(
         (candidate) => candidate.isNotEmpty,
@@ -91,27 +98,33 @@ class _ReportTypeAssets {
 
   //7.- defaultAsset expone el fallback primario reutilizado por la vista.
   static String get defaultAsset => _defaultAsset;
+
+  //8.- _isNetworkSource detecta rutas absolutas que deben cargarse por HTTP.
+  static bool _isNetworkSource(String value) {
+    final lower = value.toLowerCase();
+    return lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:');
+  }
 }
 
-//8.- resolveReportTypeAsset expone la transformación para validarla con pruebas unitarias.
+//9.- resolveReportTypeAsset expone la transformación para validarla con pruebas unitarias.
 @visibleForTesting
 String resolveReportTypeAsset(Map<String, dynamic> type) =>
     _ReportTypeAssets.resolve(type);
 
-//9.- resolveReportTypeCrossAxisCount permite verificar la distribución de columnas en pruebas.
+//10.- resolveReportTypeCrossAxisCount permite verificar la distribución de columnas en pruebas.
 @visibleForTesting
 int resolveReportTypeCrossAxisCount(double maxWidth) =>
     _ReportTypeGridMetrics.resolveCrossAxisCount(maxWidth);
 
-//10.- _ReportTypeGridMetrics concentra las reglas responsivas del menú.
+//11.- _ReportTypeGridMetrics concentra las reglas responsivas del menú.
 class _ReportTypeGridMetrics {
-  //11.- minTileWidth define el ancho deseado de cada tarjeta para calcular columnas.
+  //12.- minTileWidth define el ancho deseado de cada tarjeta para calcular columnas.
   static const double minTileWidth = 152;
 
-  //12.- maxColumns limita el número de columnas simultáneas para evitar iconos diminutos.
+  //13.- maxColumns limita el número de columnas simultáneas para evitar iconos diminutos.
   static const int maxColumns = 4;
 
-  //13.- resolveCrossAxisCount calcula cuántas columnas caben según el ancho disponible.
+  //14.- resolveCrossAxisCount calcula cuántas columnas caben según el ancho disponible.
   static int resolveCrossAxisCount(double maxWidth) {
     if (maxWidth.isNaN || !maxWidth.isFinite) {
       return 1;
@@ -121,13 +134,13 @@ class _ReportTypeGridMetrics {
   }
 }
 
-//14.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
+//15.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
 class ReportTypeOverlay extends StatelessWidget {
-  //15.- types contiene la lista de configuraciones recibidas desde la API.
+  //16.- types contiene la lista de configuraciones recibidas desde la API.
   final List<Map<String, dynamic>> types;
-  //16.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
+  //17.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
   final ValueChanged<String> onSelected;
-  //17.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
+  //18.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
   final VoidCallback onDismiss;
 
   const ReportTypeOverlay({
@@ -139,9 +152,9 @@ class ReportTypeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //18.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
+    //19.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
     final theme = Theme.of(context);
-    //19.- grid construye la retícula responsiva o un mensaje vacío si no hay catálogos.
+    //20.- grid construye la retícula responsiva o un mensaje vacío si no hay catálogos.
     final Widget grid = types.isEmpty
         ? SizedBox(
             height: 120,
@@ -233,17 +246,17 @@ class ReportTypeOverlay extends StatelessWidget {
   }
 }
 
-//20.- _ReportTypeTile define el botón visual cuadrado con imagen y etiqueta.
+//23.- _ReportTypeTile define el botón visual cuadrado con imagen y etiqueta.
 class _ReportTypeTile extends StatelessWidget {
-  //21.- id se usa para llaves únicas y accesibilidad.
+  //24.- id se usa para llaves únicas y accesibilidad.
   final String id;
-  //22.- label muestra el nombre legible del tipo de reporte.
+  //25.- label muestra el nombre legible del tipo de reporte.
   final String label;
-  //23.- assetPath identifica el recurso gráfico mostrado dentro de la tarjeta.
+  //26.- assetPath identifica el recurso gráfico mostrado dentro de la tarjeta.
   final String assetPath;
-  //24.- fallbackAsset ofrece una ruta secundaria si falla la primaria.
+  //27.- fallbackAsset ofrece una ruta secundaria si falla la primaria.
   final String fallbackAsset;
-  //25.- onTap se ejecuta al pulsar la tarjeta.
+  //28.- onTap se ejecuta al pulsar la tarjeta.
   final VoidCallback onTap;
 
   const _ReportTypeTile({
@@ -256,12 +269,41 @@ class _ReportTypeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //26.- theme permite alinear colores con el esquema actual.
+    //29.- theme permite alinear colores con el esquema actual.
     final theme = Theme.of(context);
-    //27.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
+    //30.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
     final tileColor = theme.colorScheme.surfaceVariant.withOpacity(0.9);
-    //28.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
+    //31.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
     final textStyle = theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
+
+    //32.- isNetworkAsset identifica si el recurso proviene de URL externa.
+    final isNetworkAsset = _ReportTypeAssets._isNetworkSource(assetPath);
+    //33.- imageWidget construye la imagen con fallback seguro para errores.
+    final Widget imageWidget = isNetworkAsset
+        ? Image.network(
+            assetPath,
+            key: Key('report-type-image-$id'),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Image.asset(
+                fallbackAsset,
+                key: Key('report-type-image-fallback-$id'),
+                fit: BoxFit.contain,
+              );
+            },
+          )
+        : Image.asset(
+            assetPath,
+            key: Key('report-type-image-$id'),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Image.asset(
+                fallbackAsset,
+                key: Key('report-type-image-fallback-$id'),
+                fit: BoxFit.contain,
+              );
+            },
+          );
 
     return Material(
       color: tileColor,
@@ -276,25 +318,15 @@ class _ReportTypeTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              //29.- Expanded asegura que la imagen conserve proporciones sin desbordar.
+              //34.- Expanded asegura que la imagen conserve proporciones sin desbordar.
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.contain,
-                  child: Image.asset(
-                    assetPath,
-                    key: Key('report-type-image-$id'),
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        fallbackAsset,
-                        key: Key('report-type-image-fallback-$id'),
-                        fit: BoxFit.contain,
-                      );
-                    },
-                  ),
+                  child: imageWidget,
                 ),
               ),
               const SizedBox(height: 16),
+              //35.- Text muestra el nombre del tipo centrado y truncado si es necesario.
               Text(
                 label,
                 textAlign: TextAlign.center,
