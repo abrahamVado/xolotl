@@ -217,7 +217,7 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const OtpAuthSheet(),
+      builder: (_) => OtpAuthSheet(),
     );
     return ok == true;
   }
