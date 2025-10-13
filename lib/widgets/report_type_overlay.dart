@@ -122,12 +122,16 @@ class ReportTypeOverlay extends StatelessWidget {
                     final label = labelSource.toString();
                     final idSource = type['id'] ?? type['name'] ?? label;
                     final id = idSource.toString();
+                    //21.- rawValue prioriza el reportType entregado por la API para envíos.
+                    final rawValue = type['reportType'] ?? idSource ?? label;
+                    //22.- value normaliza el identificador final a String para callbacks.
+                    final value = rawValue.toString();
                     final assetPath = _ReportTypeAssets.resolve(type);
                     return _ReportTypeTile(
                       id: id,
                       label: label,
                       assetPath: assetPath,
-                      onTap: () => onSelected(id),
+                      onTap: () => onSelected(value),
                     );
                   },
                 ),
@@ -195,11 +199,11 @@ class _ReportTypeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //22.- theme permite alinear colores con el esquema actual.
+    //23.- theme permite alinear colores con el esquema actual.
     final theme = Theme.of(context);
-    //23.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
+    //24.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
     final tileColor = theme.colorScheme.surfaceVariant.withOpacity(0.9);
-    //24.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
+    //25.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
     final textStyle = theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
 
     return Material(
@@ -215,7 +219,7 @@ class _ReportTypeTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              //25.- Expanded asegura que la imagen conserve proporciones sin desbordar.
+              //26.- Expanded asegura que la imagen conserve proporciones sin desbordar.
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.contain,

@@ -45,6 +45,18 @@ class ApiService {
     if (data is List) {
       return data.cast<Map<String, dynamic>>();
     }
+    if (data is Map<String, dynamic>) {
+      final candidates = [
+        data['data'],
+        data['incidentTypes'],
+        data['items'],
+      ];
+      for (final candidate in candidates) {
+        if (candidate is List) {
+          return candidate.cast<Map<String, dynamic>>();
+        }
+      }
+    }
     return [];
   }
 
