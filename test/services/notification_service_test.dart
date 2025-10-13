@@ -179,4 +179,45 @@ void main() {
     expect(refreshed, isNotEmpty);
     expect(refreshed.first.id, 'F-101');
   });
+
+  //3.- Verifica que los mensajes recibidos en background actualicen folios sin notificar.
+  test('handleBackgroundMessage actualiza folios sin mostrar notificación', () async {
+    await session.debugSetTokenOnlyForTests(SessionToken(
+      token: 'jwt',
+      expiresAt: DateTime.now().add(const Duration(hours: 1)),
+      phone: '5559876543',
+    ));
+
+    final fixedNow = DateTime.parse('2024-05-12T08:30:00Z');
+    final service = await NotificationService.background(
+      messaging: FirebaseMessagingAdapter(platform: platform),
+      presenter: presenter,
+      folios: folios,
+      clock: () => fixedNow,
+    );
+
+    final message = RemoteMessage(
+      data: const <String, dynamic>{
+        'folioId': 'F-202',
+        'status': 'resolved',
+        'type': 'medical',
+        'lat': 19.4,
+        'lon': -99.1,
+      },
+      sentTime: fixedNow,
+    );
+
+    await service.handleBackgroundMessage(message);
+
+    expect(presenter.lastPayload, isNull);
+
+    final stored = await folios.loadForCurrentSession();
+    expect(stored, hasLength(1));
+    final entry = stored.first;
+    expect(entry.id, 'F-202');
+    expect(entry.status, 'resolved');
+    expect(entry.type, 'medical');
+    expect(entry.latitude, closeTo(19.4, 0.0001));
+    expect(entry.longitude, closeTo(-99.1, 0.0001));
+  });
 }
