@@ -32,13 +32,13 @@ void main() {
       expect(asset, 'assets/icons/default.png');
     });
 
-    //5.- Integra la ruta image_url enviada por la API al directorio interno esperado.
-    test('resolveReportTypeAsset remaps api image_url into internal assets', () {
+    //5.- Integra la ruta image_url enviada por la API preservando el árbol de assets declarado.
+    test('resolveReportTypeAsset keeps api relative image_url inside assets directory', () {
       final asset = resolveReportTypeAsset({
         'id': 'bache',
         'image_url': 'assets/bache.jpeg',
       });
-      expect(asset, 'internal/assets/bache.jpeg');
+      expect(asset, 'assets/bache.jpeg');
     });
 
     //6.- Asegura que las rutas con diagonales invertidas se normalicen correctamente.
@@ -50,13 +50,19 @@ void main() {
       expect(asset, 'internal/assets/agua.png');
     });
 
-    //7.- Prefija archivos sin carpeta con el directorio interno.
-    test('resolveReportTypeAsset prefixes bare filenames into internal assets', () {
+    //7.- Prefija archivos sin carpeta con el directorio principal de assets y respeta subcarpetas declaradas.
+    test('resolveReportTypeAsset prefixes bare filenames into assets directory', () {
       final asset = resolveReportTypeAsset({
         'id': 'luz',
         'image_url': 'lampara.webp',
       });
-      expect(asset, 'internal/assets/lampara.webp');
+      expect(asset, 'assets/lampara.webp');
+
+      final nestedAsset = resolveReportTypeAsset({
+        'id': 'farola',
+        'image_url': 'report_images/farola.jpg',
+      });
+      expect(nestedAsset, 'assets/report_images/farola.jpg');
     });
 
     //8.- Mantiene las URLs absolutas provenientes del backend para carga remota.

@@ -79,18 +79,18 @@ class _ReportTypeAssets {
       if (normalized.startsWith('internal/')) {
         candidates.add(normalized);
       } else if (normalized.startsWith('assets/')) {
-        candidates.add('internal/$normalized');
-        candidates.add(normalized);
+        candidates
+          ..add(normalized)
+          ..add('internal/$normalized');
       } else {
-        candidates.add('internal/assets/$normalized');
-        candidates.add('assets/$normalized');
+        candidates
+          ..add('assets/$normalized')
+          ..add('internal/assets/$normalized');
       }
-      final resolved = candidates.firstWhere(
-        (candidate) => candidate.isNotEmpty,
-        orElse: () => '',
-      );
-      if (resolved.isNotEmpty) {
-        return resolved;
+      for (final candidate in candidates) {
+        if (candidate.isNotEmpty) {
+          return candidate;
+        }
       }
     }
     return null;
