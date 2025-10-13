@@ -216,8 +216,40 @@ void main() {
       expect(provider.url, 'https://cdn.example.com/reports/remoto.png');
     });
 
+    testWidgets('shows error indicator when network image fails to load', (tester) async {
+      //28.- Forzamos un error de red para validar el mensaje de imagen no disponible.
+      painting.debugNetworkImageHttpClientProvider = () => _FailingHttpClient();
+      addTearDown(() => painting.debugNetworkImageHttpClientProvider = null);
+
+      await tester.pumpWidget(
+        _wrapWithThemes(
+          Scaffold(
+            body: ReportTypeOverlay(
+              types: const [
+                {
+                  'id': 'remoto',
+                  'name': 'Remoto',
+                  'image_url': 'https://cdn.example.com/reports/remoto.png',
+                },
+              ],
+              onSelected: _noopOnSelected,
+              onDismiss: _noopOnDismiss,
+            ),
+          ),
+        ),
+      );
+
+      //29.- Avanzamos cuadros para que Flutter procese el error de carga asincrónico.
+      await tester.pumpAndSettle();
+
+      //30.- Debe mostrarse el contenedor con el aviso y el texto explicativo.
+      expect(find.byKey(const Key('report-type-image-error-remoto')), findsOneWidget);
+      expect(find.byKey(const Key('report-type-image-error-label-remoto')), findsOneWidget);
+      expect(find.text('Imagen no disponible'), findsOneWidget);
+    });
+
     testWidgets('adapts grid columns to available width', (tester) async {
-      //28.- Configuramos múltiples escenarios de ancho para evaluar la retícula responsiva.
+      //31.- Configuramos múltiples escenarios de ancho para evaluar la retícula responsiva.
       const mockTypes = [
         {'id': 'pothole', 'name': 'Bache'},
         {'id': 'light', 'name': 'Alumbrado'},
@@ -225,7 +257,7 @@ void main() {
         {'id': 'water', 'name': 'Fuga'},
       ];
 
-      //29.- Validamos que en 320 px el grid utilice dos columnas ideales para móviles.
+      //32.- Validamos que en 320 px el grid utilice dos columnas ideales para móviles.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -248,7 +280,7 @@ void main() {
           mobileGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
       expect(mobileDelegate.crossAxisCount, 2);
 
-      //30.- Repite la verificación para un ancho de escritorio que debe saturar el máximo.
+      //33.- Repite la verificación para un ancho de escritorio que debe saturar el máximo.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -274,13 +306,13 @@ void main() {
   });
 }
 
-//31.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
+//34.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
 void _noopOnSelected(String _) {}
 
-//32.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
+//35.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
 void _noopOnDismiss() {}
 
-//33.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
+//36.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
 Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   final lightScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
   final darkScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
@@ -300,13 +332,13 @@ Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   );
 }
 
-//34.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
+//37.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
 class _FakeHttpClient extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async => _FakeHttpClientRequest(url);
 }
 
-//35.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
+//38.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
 class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   _FakeHttpClientRequest(this._uri);
 
@@ -398,7 +430,7 @@ class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   void writeln([Object? obj = '']) {}
 }
 
-//36.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
+//39.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
 class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResponse {
   _FakeHttpClientResponse();
 
@@ -460,7 +492,7 @@ class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientRes
   Future<HttpClientResponse> redirect([String? method, Uri? url, bool? followLoops]) async => this;
 }
 
-//37.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
+//40.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
 class _FakeHttpHeaders extends Fake implements HttpHeaders {
   final Map<String, List<String>> _headers = {};
 
@@ -478,4 +510,97 @@ class _FakeHttpHeaders extends Fake implements HttpHeaders {
 
   @override
   List<String>? operator [](String name) => _headers[name.toLowerCase()];
+}
+
+//41.- _FailingHttpClient simula fallos para activar la ruta de error de imágenes.
+class _FailingHttpClient extends Fake implements HttpClient {
+  @override
+  Future<HttpClientRequest> getUrl(Uri url) async => _FailingHttpClientRequest(url);
+}
+
+//42.- _FailingHttpClientRequest produce un error al cerrar la conexión simulada.
+class _FailingHttpClientRequest extends Fake implements HttpClientRequest {
+  _FailingHttpClientRequest(this._uri);
+
+  final Uri _uri;
+
+  @override
+  Uri get uri => _uri;
+
+  @override
+  String get method => 'GET';
+
+  @override
+  final HttpHeaders headers = _FakeHttpHeaders();
+
+  @override
+  Encoding get encoding => utf8;
+
+  @override
+  set encoding(Encoding value) {}
+
+  @override
+  int get contentLength => 0;
+
+  @override
+  set contentLength(int value) {}
+
+  @override
+  bool get bufferOutput => false;
+
+  @override
+  set bufferOutput(bool value) {}
+
+  @override
+  bool get followRedirects => false;
+
+  @override
+  set followRedirects(bool value) {}
+
+  @override
+  int get maxRedirects => 0;
+
+  @override
+  set maxRedirects(int value) {}
+
+  @override
+  bool get persistentConnection => false;
+
+  @override
+  set persistentConnection(bool value) {}
+
+  @override
+  void abort([Object? exception, StackTrace? stackTrace]) {}
+
+  @override
+  void add(List<int> data) {}
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) {}
+
+  @override
+  Future<void> addStream(Stream<List<int>> stream) async {}
+
+  @override
+  Future<void> flush() async {}
+
+  @override
+  void write(Object? obj) {}
+
+  @override
+  void writeAll(Iterable<Object?> objects, [String separator = '']) {}
+
+  @override
+  void writeCharCode(int charCode) {}
+
+  @override
+  void writeln([Object? obj = '']) {}
+
+  @override
+  Future<HttpClientResponse> close() =>
+      Future<HttpClientResponse>.error(const SocketException('Simulated network failure'));
+
+  @override
+  Future<HttpClientResponse> get done =>
+      Future<HttpClientResponse>.error(const SocketException('Simulated network failure'));
 }

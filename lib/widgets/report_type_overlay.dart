@@ -276,34 +276,13 @@ class _ReportTypeTile extends StatelessWidget {
     //31.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
     final textStyle = theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
 
-    //32.- isNetworkAsset identifica si el recurso proviene de URL externa.
-    final isNetworkAsset = _ReportTypeAssets._isNetworkSource(assetPath);
-    //33.- imageWidget construye la imagen con fallback seguro para errores.
-    final Widget imageWidget = isNetworkAsset
-        ? Image.network(
-            assetPath,
-            key: Key('report-type-image-$id'),
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Image.asset(
-                fallbackAsset,
-                key: Key('report-type-image-fallback-$id'),
-                fit: BoxFit.contain,
-              );
-            },
-          )
-        : Image.asset(
-            assetPath,
-            key: Key('report-type-image-$id'),
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Image.asset(
-                fallbackAsset,
-                key: Key('report-type-image-fallback-$id'),
-                fit: BoxFit.contain,
-              );
-            },
-          );
+    //32.- _ReportTypeTileImage evalúa si la ruta es remota y responde a errores.
+    //33.- imageWidget delega la representación a un widget dedicado que maneja errores.
+    final Widget imageWidget = _ReportTypeTileImage(
+      id: id,
+      assetPath: assetPath,
+      fallbackAsset: fallbackAsset,
+    );
 
     return Material(
       color: tileColor,
@@ -319,12 +298,7 @@ class _ReportTypeTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               //34.- Expanded asegura que la imagen conserve proporciones sin desbordar.
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: imageWidget,
-                ),
-              ),
+              Expanded(child: imageWidget),
               const SizedBox(height: 16),
               //35.- Text muestra el nombre del tipo centrado y truncado si es necesario.
               Text(
@@ -337,6 +311,136 @@ class _ReportTypeTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+//36.- _ReportTypeTileImage encapsula la lógica para mostrar imágenes y errores.
+class _ReportTypeTileImage extends StatelessWidget {
+  final String id;
+  final String assetPath;
+  final String fallbackAsset;
+
+  const _ReportTypeTileImage({
+    required this.id,
+    required this.assetPath,
+    required this.fallbackAsset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedPath = assetPath.trim();
+    final bool hasPath = trimmedPath.isNotEmpty;
+    final Widget errorWidget = _ReportTypeImageError(
+      id: id,
+      fallbackAsset: fallbackAsset,
+    );
+
+    if (!hasPath) {
+      return FittedBox(fit: BoxFit.contain, child: errorWidget);
+    }
+
+    final bool isNetworkAsset = _ReportTypeAssets._isNetworkSource(trimmedPath);
+
+    final Widget image = isNetworkAsset
+        ? Image.network(
+            trimmedPath,
+            key: Key('report-type-image-$id'),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => errorWidget,
+          )
+        : Image.asset(
+            trimmedPath,
+            key: Key('report-type-image-$id'),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => errorWidget,
+          );
+
+    return FittedBox(
+      fit: BoxFit.contain,
+      child: SizedBox(
+        width: 120,
+        height: 120,
+        child: image,
+      ),
+    );
+  }
+}
+
+//37.- _ReportTypeImageError comunica visualmente que la carga falló.
+class _ReportTypeImageError extends StatelessWidget {
+  final String id;
+  final String fallbackAsset;
+
+  const _ReportTypeImageError({
+    required this.id,
+    required this.fallbackAsset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasFallback = fallbackAsset.trim().isNotEmpty;
+    final Widget fallbackWidget = hasFallback
+        ? Image.asset(
+            fallbackAsset,
+            key: Key('report-type-image-fallback-$id'),
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.broken_image_outlined,
+                key: Key('report-type-image-fallback-error-$id'),
+                color: theme.colorScheme.error,
+                size: 48,
+              );
+            },
+          )
+        : Icon(
+            Icons.broken_image_outlined,
+            key: Key('report-type-image-fallback-error-$id'),
+            color: theme.colorScheme.error,
+            size: 48,
+          );
+
+    final textStyle = theme.textTheme.labelSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: theme.colorScheme.onErrorContainer,
+    );
+
+    return SizedBox(
+      key: Key('report-type-image-error-$id'),
+      width: 120,
+      height: 120,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: fallbackWidget,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              key: Key('report-type-image-error-label-$id'),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Imagen no disponible',
+                style: textStyle,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
