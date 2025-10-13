@@ -54,6 +54,52 @@ void main() {
       await tester.pump();
       expect(dismissed, isTrue);
     });
+
+    testWidgets('renders expected asset image for each report type', (tester) async {
+      //1.- Definimos una colección de tipos variados, incluyendo uno desconocido y uno sin id.
+      const types = [
+        {'id': 'pothole', 'name': 'Bache'},
+        {'id': 'light', 'name': 'Alumbrado'},
+        {'id': 'trash', 'name': 'Basura'},
+        {'id': 'water', 'name': 'Fuga'},
+        {'id': 'graffiti', 'name': 'Graffiti'},
+        {'name': 'Sin Identificador'},
+      ];
+
+      //2.- Montamos el overlay para poder inspeccionar los widgets Image.asset generados.
+      await tester.pumpWidget(
+        _wrapWithThemes(
+          Scaffold(
+            body: ReportTypeOverlay(
+              types: types,
+              onSelected: _noopOnSelected,
+              onDismiss: _noopOnDismiss,
+            ),
+          ),
+        ),
+      );
+
+      //3.- Verificamos que los ids conocidos usan rutas exactas a los placeholders preparados.
+      final potholeImage = tester.widget<Image>(find.byKey(const Key('report-type-image-pothole')));
+      expect((potholeImage.image as AssetImage).assetName, 'assets/icons/pothole.png');
+
+      final lightImage = tester.widget<Image>(find.byKey(const Key('report-type-image-light')));
+      expect((lightImage.image as AssetImage).assetName, 'assets/icons/light.png');
+
+      final trashImage = tester.widget<Image>(find.byKey(const Key('report-type-image-trash')));
+      expect((trashImage.image as AssetImage).assetName, 'assets/icons/trash.png');
+
+      final waterImage = tester.widget<Image>(find.byKey(const Key('report-type-image-water')));
+      expect((waterImage.image as AssetImage).assetName, 'assets/icons/water.png');
+
+      //4.- Los ids nuevos generan rutas sanitizadas dentro de assets/icons automáticamente.
+      final graffitiImage = tester.widget<Image>(find.byKey(const Key('report-type-image-graffiti')));
+      expect((graffitiImage.image as AssetImage).assetName, 'assets/icons/graffiti.png');
+
+      //5.- Cuando no existe id se recurre al placeholder default.
+      final fallbackImage = tester.widget<Image>(find.byKey(const Key('report-type-image-Sin Identificador')));
+      expect((fallbackImage.image as AssetImage).assetName, 'assets/icons/default.png');
+    });
   });
 }
 
