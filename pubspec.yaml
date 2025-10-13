@@ -40,3 +40,5 @@ flutter:
     - assets/
     # //8.- assets/icons contendrá los placeholders de íconos suministrados externamente.
     - assets/icons/
+    # //9.- internal/assets alberga los íconos personalizados enviados por el backend ciudadano.
+    - internal/assets/

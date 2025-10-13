@@ -12,11 +12,22 @@ class _ReportTypeAssets {
     'water': 'assets/icons/water.png',
   };
 
-  //3.- _defaultAsset sirve cuando el id no está identificado o es vacío.
+  //3.- _imageUrlKeys agrupa las variaciones más comunes entregadas por la API.
+  static const List<String> _imageUrlKeys = [
+    'image_url',
+    'imageUrl',
+    'image',
+  ];
+
+  //4.- _defaultAsset sirve cuando el id no está identificado o es vacío.
   static const String _defaultAsset = 'assets/icons/default.png';
 
-  //4.- resolve genera el nombre de archivo final usando el id y un fallback seguro.
+  //5.- resolve genera el nombre de archivo final usando el id y un fallback seguro.
   static String resolve(Map<String, dynamic> type) {
+    final imagePath = _resolveFromImageUrl(type);
+    if (imagePath != null) {
+      return imagePath;
+    }
     final idSource = type['id'];
     if (idSource == null) {
       return _defaultAsset;
@@ -38,27 +49,69 @@ class _ReportTypeAssets {
     }
     return 'assets/icons/$trimmed.png';
   }
+
+  //6.- _resolveFromImageUrl analiza la ruta proveniente del backend y la normaliza.
+  static String? _resolveFromImageUrl(Map<String, dynamic> type) {
+    for (final key in _imageUrlKeys) {
+      final value = type[key];
+      if (value == null) {
+        continue;
+      }
+      final raw = value.toString().trim();
+      if (raw.isEmpty) {
+        continue;
+      }
+      final sanitized = raw
+          .replaceAll('\\', '/')
+          .replaceFirst(RegExp(r'^(\./)+'), '')
+          .replaceFirst(RegExp(r'^/+'), '');
+      if (sanitized.isEmpty) {
+        continue;
+      }
+      final candidates = <String>[];
+      if (sanitized.startsWith('internal/')) {
+        candidates.add(sanitized);
+      } else if (sanitized.startsWith('assets/')) {
+        candidates.add('internal/$sanitized');
+        candidates.add(sanitized);
+      } else {
+        candidates.add('internal/assets/$sanitized');
+        candidates.add('assets/$sanitized');
+      }
+      final resolved = candidates.firstWhere(
+        (candidate) => candidate.isNotEmpty,
+        orElse: () => '',
+      );
+      if (resolved.isNotEmpty) {
+        return resolved;
+      }
+    }
+    return null;
+  }
+
+  //7.- defaultAsset expone el fallback primario reutilizado por la vista.
+  static String get defaultAsset => _defaultAsset;
 }
 
-//5.- resolveReportTypeAsset expone la transformación para validarla con pruebas unitarias.
+//8.- resolveReportTypeAsset expone la transformación para validarla con pruebas unitarias.
 @visibleForTesting
 String resolveReportTypeAsset(Map<String, dynamic> type) =>
     _ReportTypeAssets.resolve(type);
 
-//6.- resolveReportTypeCrossAxisCount permite verificar la distribución de columnas en pruebas.
+//9.- resolveReportTypeCrossAxisCount permite verificar la distribución de columnas en pruebas.
 @visibleForTesting
 int resolveReportTypeCrossAxisCount(double maxWidth) =>
     _ReportTypeGridMetrics.resolveCrossAxisCount(maxWidth);
 
-//7.- _ReportTypeGridMetrics concentra las reglas responsivas del menú.
+//10.- _ReportTypeGridMetrics concentra las reglas responsivas del menú.
 class _ReportTypeGridMetrics {
-  //8.- minTileWidth define el ancho deseado de cada tarjeta para calcular columnas.
+  //11.- minTileWidth define el ancho deseado de cada tarjeta para calcular columnas.
   static const double minTileWidth = 152;
 
-  //9.- maxColumns limita el número de columnas simultáneas para evitar iconos diminutos.
+  //12.- maxColumns limita el número de columnas simultáneas para evitar iconos diminutos.
   static const int maxColumns = 4;
 
-  //10.- resolveCrossAxisCount calcula cuántas columnas caben según el ancho disponible.
+  //13.- resolveCrossAxisCount calcula cuántas columnas caben según el ancho disponible.
   static int resolveCrossAxisCount(double maxWidth) {
     if (maxWidth.isNaN || !maxWidth.isFinite) {
       return 1;
@@ -68,13 +121,13 @@ class _ReportTypeGridMetrics {
   }
 }
 
-//11.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
+//14.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
 class ReportTypeOverlay extends StatelessWidget {
-  //12.- types contiene la lista de configuraciones recibidas desde la API.
+  //15.- types contiene la lista de configuraciones recibidas desde la API.
   final List<Map<String, dynamic>> types;
-  //13.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
+  //16.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
   final ValueChanged<String> onSelected;
-  //14.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
+  //17.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
   final VoidCallback onDismiss;
 
   const ReportTypeOverlay({
@@ -86,9 +139,9 @@ class ReportTypeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //15.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
+    //18.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
     final theme = Theme.of(context);
-    //16.- grid construye la retícula responsiva o un mensaje vacío si no hay catálogos.
+    //19.- grid construye la retícula responsiva o un mensaje vacío si no hay catálogos.
     final Widget grid = types.isEmpty
         ? SizedBox(
             height: 120,
@@ -131,6 +184,7 @@ class ReportTypeOverlay extends StatelessWidget {
                       id: id,
                       label: label,
                       assetPath: assetPath,
+                      fallbackAsset: _ReportTypeAssets.defaultAsset,
                       onTap: () => onSelected(value),
                     );
                   },
@@ -179,31 +233,34 @@ class ReportTypeOverlay extends StatelessWidget {
   }
 }
 
-//17.- _ReportTypeTile define el botón visual cuadrado con imagen y etiqueta.
+//20.- _ReportTypeTile define el botón visual cuadrado con imagen y etiqueta.
 class _ReportTypeTile extends StatelessWidget {
-  //18.- id se usa para llaves únicas y accesibilidad.
+  //21.- id se usa para llaves únicas y accesibilidad.
   final String id;
-  //19.- label muestra el nombre legible del tipo de reporte.
+  //22.- label muestra el nombre legible del tipo de reporte.
   final String label;
-  //20.- assetPath identifica el recurso gráfico mostrado dentro de la tarjeta.
+  //23.- assetPath identifica el recurso gráfico mostrado dentro de la tarjeta.
   final String assetPath;
-  //21.- onTap se ejecuta al pulsar la tarjeta.
+  //24.- fallbackAsset ofrece una ruta secundaria si falla la primaria.
+  final String fallbackAsset;
+  //25.- onTap se ejecuta al pulsar la tarjeta.
   final VoidCallback onTap;
 
   const _ReportTypeTile({
     required this.id,
     required this.label,
     required this.assetPath,
+    required this.fallbackAsset,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    //23.- theme permite alinear colores con el esquema actual.
+    //26.- theme permite alinear colores con el esquema actual.
     final theme = Theme.of(context);
-    //24.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
+    //27.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
     final tileColor = theme.colorScheme.surfaceVariant.withOpacity(0.9);
-    //25.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
+    //28.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
     final textStyle = theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
 
     return Material(
@@ -219,7 +276,7 @@ class _ReportTypeTile extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              //26.- Expanded asegura que la imagen conserve proporciones sin desbordar.
+              //29.- Expanded asegura que la imagen conserve proporciones sin desbordar.
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.contain,
@@ -227,6 +284,13 @@ class _ReportTypeTile extends StatelessWidget {
                     assetPath,
                     key: Key('report-type-image-$id'),
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        fallbackAsset,
+                        key: Key('report-type-image-fallback-$id'),
+                        fit: BoxFit.contain,
+                      );
+                    },
                   ),
                 ),
               ),
