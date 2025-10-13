@@ -19,6 +19,7 @@ dependencies:
   # //5.- Incluye Equatable para simplificar comparaciones de modelos.
   equatable: ^2.0.5
   google_maps_flutter: ^2.7.0
+  geolocator: ^13.0.1
   http: ^1.2.2
   device_info_plus: ^10.1.0
   flutter_secure_storage: ^9.2.2
