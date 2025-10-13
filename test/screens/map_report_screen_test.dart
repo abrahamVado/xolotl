@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:http/http.dart' as http;
@@ -12,6 +13,7 @@ import 'package:mictlan_client/screens/map_report_screen.dart';
 import 'package:mictlan_client/providers/folio_providers.dart';
 import 'package:mictlan_client/services/api.dart';
 import 'package:mictlan_client/services/folio_repository.dart';
+import 'package:mictlan_client/services/location_service.dart';
 import 'package:mictlan_client/services/session_service.dart';
 import 'package:mictlan_client/services/google_maps_availability.dart';
 import 'package:mictlan_client/theme/shad_theme_builder.dart';
@@ -329,6 +331,7 @@ Future<void> _pumpReportScreen(
   _TestBundle bundle, {
   ValueChanged<String>? onTypeSelected,
   ThemeMode mode = ThemeMode.light,
+  LocationService? locationService,
 }) async {
   final lightScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
   final darkScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
@@ -352,6 +355,7 @@ Future<void> _pumpReportScreen(
             api: bundle.api,
             session: bundle.session,
             onReportTypeSelected: onTypeSelected,
+            location: locationService,
           ),
         ),
       ),
@@ -457,8 +461,56 @@ void main() {
     expect(find.byKey(const Key('report-type-overlay')), findsNothing);
   });
 
+  testWidgets('centrar el mapa solicita la ubicación actual', (tester) async {
+    //12.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
+    final bundle = _TestBundle();
+    var permissionChecks = 0;
+    var positionRequests = 0;
+    final location = LocationService(
+      isServiceEnabled: () async => true,
+      checkPermission: () async {
+        permissionChecks++;
+        return LocationPermission.always;
+      },
+      requestPermission: () async => LocationPermission.always,
+      getCurrentPosition: (_) async {
+        positionRequests++;
+        return Position(
+          latitude: 19.4326,
+          longitude: -99.1332,
+          timestamp: DateTime.now(),
+          accuracy: 5,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+      },
+    );
+    await _pumpReportScreen(tester, bundle, locationService: location);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('map-location-card')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('map-current-location-button')));
+    await tester.pumpAndSettle();
+
+    expect(permissionChecks, greaterThanOrEqualTo(1));
+    expect(positionRequests, 1);
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final selectedMarker =
+        map.markers.firstWhere((marker) => marker.markerId == const MarkerId('selected'));
+    expect(selectedMarker.position.latitude, closeTo(19.4326, 0.0001));
+    expect(selectedMarker.position.longitude, closeTo(-99.1332, 0.0001));
+  });
+
   testWidgets('muestra instrucciones cuando falta el API key', (tester) async {
-    //12.- Simulamos la ausencia del API key para validar el flujo de contingencia.
+    //13.- Simulamos la ausencia del API key para validar el flujo de contingencia.
     GoogleMapsAvailability.debugOverride(() async => false);
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
