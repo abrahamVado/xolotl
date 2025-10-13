@@ -79,18 +79,18 @@ class _ReportTypeAssets {
       if (normalized.startsWith('internal/')) {
         candidates.add(normalized);
       } else if (normalized.startsWith('assets/')) {
-        candidates.add('internal/$normalized');
-        candidates.add(normalized);
+        candidates
+          ..add(normalized)
+          ..add('internal/$normalized');
       } else {
-        candidates.add('internal/assets/$normalized');
-        candidates.add('assets/$normalized');
+        candidates
+          ..add('assets/$normalized')
+          ..add('internal/assets/$normalized');
       }
-      final resolved = candidates.firstWhere(
-        (candidate) => candidate.isNotEmpty,
-        orElse: () => '',
-      );
-      if (resolved.isNotEmpty) {
-        return resolved;
+      for (final candidate in candidates) {
+        if (candidate.isNotEmpty) {
+          return candidate;
+        }
       }
     }
     return null;
@@ -360,8 +360,8 @@ class _ReportTypeTileImage extends StatelessWidget {
     return FittedBox(
       fit: BoxFit.contain,
       child: SizedBox(
-        width: 120,
-        height: 120,
+        width: 80,
+        height: 80,
         child: image,
       ),
     );
@@ -410,8 +410,8 @@ class _ReportTypeImageError extends StatelessWidget {
 
     return SizedBox(
       key: Key('report-type-image-error-$id'),
-      width: 120,
-      height: 120,
+      width: 80,
+      height: 80,
       child: Stack(
         alignment: Alignment.center,
         children: [
