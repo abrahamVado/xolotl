@@ -13,7 +13,9 @@ class FolioEntry extends Equatable {
   final double latitude;
   //5.- longitude conserva la coordenada este-oeste del reporte.
   final double longitude;
-  //6.- type referencia el identificador del catálogo de incidentes.
+  //6.- status expone el estado más reciente recibido para el folio.
+  final String status;
+  //7.- type referencia el identificador del catálogo de incidentes.
   final String type;
 
   const FolioEntry({
@@ -21,21 +23,23 @@ class FolioEntry extends Equatable {
     required this.timestamp,
     required this.latitude,
     required this.longitude,
+    required this.status,
     required this.type,
   });
 
-  //7.- fromJson reconstruye la entrada persistida en almacenamiento local.
+  //8.- fromJson reconstruye la entrada persistida en almacenamiento local.
   factory FolioEntry.fromJson(Map<String, dynamic> json) {
     return FolioEntry(
       id: json['id'] as String,
       timestamp: DateTime.parse(json['timestamp'] as String),
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
+      status: (json['status'] ?? 'unknown').toString(),
       type: json['type'] as String,
     );
   }
 
-  //8.- fromApiResponse construye el modelo usando la respuesta de submitReport.
+  //9.- fromApiResponse construye el modelo usando la respuesta de submitReport.
   factory FolioEntry.fromApiResponse(
     Map<String, dynamic> json, {
     required double latitude,
@@ -50,31 +54,33 @@ class FolioEntry extends Equatable {
       timestamp: createdAt is String ? DateTime.tryParse(createdAt) ?? now : now,
       latitude: latitude,
       longitude: longitude,
+      status: (json['status'] ?? json['state'] ?? 'unknown').toString(),
       type: type,
     );
   }
 
-  //9.- toJson serializa la entrada para guardarla como cadena JSON.
+  //10.- toJson serializa la entrada para guardarla como cadena JSON.
   Map<String, dynamic> toJson() => {
         'id': id,
         'timestamp': timestamp.toIso8601String(),
         'latitude': latitude,
         'longitude': longitude,
+        'status': status,
         'type': type,
       };
 
   @override
-  List<Object?> get props => [id, timestamp, latitude, longitude, type];
+  List<Object?> get props => [id, timestamp, latitude, longitude, status, type];
 }
 
-//10.- FolioStorage define el contrato para leer y escribir folios por sesión.
+//11.- FolioStorage define el contrato para leer y escribir folios por sesión.
 abstract class FolioStorage {
   Future<List<FolioEntry>> read(String sessionKey);
   Future<void> write(String sessionKey, List<FolioEntry> entries);
   Future<void> clear(String sessionKey);
 }
 
-//11.- SecureFolioStorage persiste los folios en FlutterSecureStorage.
+//12.- SecureFolioStorage persiste los folios en FlutterSecureStorage.
 class SecureFolioStorage implements FolioStorage {
   final FlutterSecureStorage _storage;
 
@@ -106,7 +112,7 @@ class SecureFolioStorage implements FolioStorage {
   Future<void> clear(String sessionKey) => _storage.delete(key: '$_prefix$sessionKey');
 }
 
-//12.- InMemoryFolioStorage habilita pruebas sin dependencias nativas.
+//13.- InMemoryFolioStorage habilita pruebas sin dependencias nativas.
 class InMemoryFolioStorage implements FolioStorage {
   final Map<String, List<FolioEntry>> _entries = {};
 
@@ -126,7 +132,7 @@ class InMemoryFolioStorage implements FolioStorage {
   }
 }
 
-//13.- FolioRepository coordina lectura y escritura de folios según la sesión.
+//14.- FolioRepository coordina lectura y escritura de folios según la sesión.
 class FolioRepository {
   final FolioStorage _storage;
   final SessionService _session;
@@ -135,7 +141,7 @@ class FolioRepository {
       : _storage = storage ?? SecureFolioStorage(),
         _session = session ?? SessionService();
 
-  //14.- loadForCurrentSession devuelve los folios almacenados para la persona.
+  //15.- loadForCurrentSession devuelve los folios almacenados para la persona.
   Future<List<FolioEntry>> loadForCurrentSession() async {
     final token = await _session.currentToken();
     if (token == null) {
@@ -144,7 +150,7 @@ class FolioRepository {
     return _storage.read(token.phone);
   }
 
-  //15.- saveForCurrentSession guarda o reemplaza un folio usando la sesión activa.
+  //16.- saveForCurrentSession guarda o reemplaza un folio usando la sesión activa.
   Future<void> saveForCurrentSession(FolioEntry entry) async {
     final token = await _session.currentToken();
     if (token == null) {
@@ -163,7 +169,7 @@ class FolioRepository {
     await _storage.write(key, updated);
   }
 
-  //16.- clearForCurrentSession permite borrar todos los folios al cerrar sesión.
+  //17.- clearForCurrentSession permite borrar todos los folios al cerrar sesión.
   Future<void> clearForCurrentSession() async {
     final token = await _session.currentToken();
     if (token == null) {

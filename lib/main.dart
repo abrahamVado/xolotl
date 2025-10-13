@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
 import 'config.dart';
@@ -13,7 +14,8 @@ import 'widgets/theme_mode_button.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Identity.ensureIdentity();
-  runApp(const MictlanApp());
+  //1.- ProviderScope habilita Riverpod en toda la aplicación para compartir estado.
+  runApp(const ProviderScope(child: MictlanApp()));
 }
 
 class MictlanApp extends StatefulWidget {

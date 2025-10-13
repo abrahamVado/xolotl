@@ -20,6 +20,7 @@ void main() {
         timestamp: DateTime.parse('2024-01-01T12:00:00Z'),
         latitude: 19.4326,
         longitude: -99.1332,
+        status: 'submitted',
         type: 'pothole',
       );
 
@@ -43,6 +44,7 @@ void main() {
         timestamp: DateTime.parse('2024-02-02T08:30:00Z'),
         latitude: 18.1234,
         longitude: -96.5678,
+        status: 'in_progress',
         type: 'water',
       );
       final json = entry.toJson();
@@ -54,6 +56,7 @@ void main() {
       expect(restored.timestamp, entry.timestamp);
       expect(restored.latitude, entry.latitude);
       expect(restored.longitude, entry.longitude);
+      expect(restored.status, entry.status);
       expect(restored.type, entry.type);
     });
   });
