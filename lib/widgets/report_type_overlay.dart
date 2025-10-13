@@ -1,13 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
 
-//1.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
+//1.- _ReportTypeAssets centraliza la lógica de nombres para los recursos gráficos.
+class _ReportTypeAssets {
+  //2.- _knownAssets mapea ids conocidos hacia archivos concretos preparados en assets/icons.
+  static const Map<String, String> _knownAssets = {
+    'pothole': 'assets/icons/pothole.png',
+    'light': 'assets/icons/light.png',
+    'trash': 'assets/icons/trash.png',
+    'water': 'assets/icons/water.png',
+  };
+
+  //3.- _defaultAsset sirve cuando el id no está identificado o es vacío.
+  static const String _defaultAsset = 'assets/icons/default.png';
+
+  //4.- resolve genera el nombre de archivo final usando el id y un fallback seguro.
+  static String resolve(Map<String, dynamic> type) {
+    final idSource = type['id'];
+    if (idSource == null) {
+      return _defaultAsset;
+    }
+    final normalized = idSource.toString().trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return _defaultAsset;
+    }
+    final directAsset = _knownAssets[normalized];
+    if (directAsset != null) {
+      return directAsset;
+    }
+    final sanitized = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'_+'), '_');
+    final trimmed = sanitized.trimLeft('_').trimRight('_');
+    if (trimmed.isEmpty) {
+      return _defaultAsset;
+    }
+    return 'assets/icons/$trimmed.png';
+  }
+}
+
+//5.- ReportTypeOverlay muestra un menú flotante con los tipos de reporte.
 class ReportTypeOverlay extends StatelessWidget {
-  //2.- types contiene la lista de configuraciones recibidas desde la API.
+  //6.- types contiene la lista de configuraciones recibidas desde la API.
   final List<Map<String, dynamic>> types;
-  //3.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
+  //7.- onSelected se invoca cuando la persona elige un tipo y debe cerrar el menú.
   final ValueChanged<String> onSelected;
-  //4.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
+  //8.- onDismiss permite cerrar el menú tocando fuera o con el botón de cierre.
   final VoidCallback onDismiss;
 
   const ReportTypeOverlay({
@@ -19,9 +55,9 @@ class ReportTypeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //5.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
+    //9.- theme reutiliza la paleta actual para tonalidades de tarjeta y texto.
     final theme = Theme.of(context);
-    //6.- grid construye la retícula 6x6 o un mensaje vacío si no hay catálogos.
+    //10.- grid construye la retícula 6x6 o un mensaje vacío si no hay catálogos.
     final Widget grid = types.isEmpty
         ? SizedBox(
             height: 120,
@@ -47,10 +83,9 @@ class ReportTypeOverlay extends StatelessWidget {
                 final type = types[index];
                 final labelSource = type['name'] ?? type['id'] ?? 'Tipo';
                 final label = labelSource.toString();
-                final emojiSource = type['emoji'] ?? '📍';
-                final emoji = emojiSource.toString();
                 final idSource = type['id'] ?? type['name'] ?? label;
                 final id = idSource.toString();
+                final assetPath = _ReportTypeAssets.resolve(type);
                 return shad.GhostButton(
                   key: Key('report-type-$id'),
                   onPressed: () => onSelected(id),
@@ -59,8 +94,17 @@ class ReportTypeOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(emoji, style: const TextStyle(fontSize: 28)),
-                      const SizedBox(height: 8),
+                      //11.- Image.asset representa el ícono cargado desde las carpetas preparadas.
+                      SizedBox(
+                        height: 48,
+                        width: 48,
+                        child: Image.asset(
+                          assetPath,
+                          key: Key('report-type-image-$id'),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       shad.Text(
                         label,
                         textAlign: TextAlign.center,
