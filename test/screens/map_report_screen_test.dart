@@ -9,6 +9,7 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:http/http.dart' as http;
 import 'package:mictlan_client/screens/map_report_screen.dart';
 import 'package:mictlan_client/services/api.dart';
+import 'package:mictlan_client/services/folio_repository.dart';
 import 'package:mictlan_client/services/session_service.dart';
 import 'package:mictlan_client/services/google_maps_availability.dart';
 import 'package:mictlan_client/theme/shad_theme_builder.dart';
@@ -279,6 +280,7 @@ const List<Map<String, dynamic>> _testIncidentTypes = [
 class _TestBundle {
   late final _RecordingHttpClient client;
   late final SessionService session;
+  late final FolioRepository folios;
   late final ApiService api;
 
   _TestBundle() {
@@ -294,7 +296,8 @@ class _TestBundle {
       ),
       clock: () => DateTime.now(),
     );
-    api = ApiService(client: client, session: session);
+    folios = FolioRepository(storage: InMemoryFolioStorage(), session: session);
+    api = ApiService(client: client, session: session, folios: folios);
   }
 }
 

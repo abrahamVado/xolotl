@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import 'folio_repository.dart';
 import 'session_service.dart';
 
 //1.- MissingSessionException comunica cuando falta autenticación ciudadana.
@@ -18,11 +19,19 @@ class MissingSessionException implements Exception {
 class ApiService {
   final http.Client _client;
   final SessionService _session;
+  final FolioRepository _folios;
 
   //4.- Constructor con dependencias inyectables para facilitar pruebas.
-  ApiService({http.Client? client, SessionService? session})
-      : _client = client ?? http.Client(),
-        _session = session ?? SessionService();
+  factory ApiService({http.Client? client, SessionService? session, FolioRepository? folios}) {
+    final resolvedSession = session ?? SessionService();
+    return ApiService._(
+      client ?? http.Client(),
+      resolvedSession,
+      folios ?? FolioRepository(session: resolvedSession),
+    );
+  }
+
+  ApiService._(this._client, this._session, this._folios);
 
   //5.- _u construye las URLs absolutas respetando parámetros opcionales.
   Uri _u(String path, [Map<String, dynamic>? q]) =>
@@ -40,7 +49,7 @@ class ApiService {
   }
 
   //7.- submitReport envía el reporte autenticado con token ciudadano.
-  Future<Map<String, dynamic>?> submitReport({
+  Future<FolioEntry?> submitReport({
     required String incidentTypeId,
     required String description,
     required String contactEmail,
@@ -74,7 +83,15 @@ class ApiService {
       body: jsonEncode(payload),
     );
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final entry = FolioEntry.fromApiResponse(
+        data,
+        latitude: lat,
+        longitude: lng,
+        type: incidentTypeId,
+      );
+      await _folios.saveForCurrentSession(entry);
+      return entry;
     }
     return null;
   }
