@@ -1,7 +1,4 @@
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_messaging_platform_interface/firebase_messaging_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
@@ -10,20 +7,10 @@ import 'config.dart';
 import 'screens/consult_screen.dart';
 import 'screens/map_report_screen.dart';
 import 'services/identity.dart';
-import 'services/notification_service.dart';
 import 'theme/shad_theme_builder.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/initialization_status_view.dart';
 import 'widgets/theme_mode_button.dart';
-
-//1.- firebaseMessagingBackgroundHandler procesa mensajes cuando la app está cerrada.
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  final service = await NotificationService.background();
-  await service.handleBackgroundMessage(message);
-}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,10 +42,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
   Future<ProviderContainer> _initialize() async {
     final container = ProviderContainer();
     try {
-      await Firebase.initializeApp();
-      FirebaseMessagingPlatform.onBackgroundMessage = firebaseMessagingBackgroundHandler;
+      //1.- La inicialización prepara la identidad local antes de iniciar la app completa.
       await Identity.ensureIdentity();
-      await NotificationService.initialize(container: container);
       _lastError = null;
       _lastStackTrace = null;
       return container;
