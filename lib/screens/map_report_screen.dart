@@ -207,7 +207,8 @@ class _MapReportScreenState extends State<MapReportScreen> {
     return Stack(
       children: [
         GoogleMap(
-          initialCameraPosition: const CameraPosition(target: LatLng(19.4326, -99.1332), zoom: 12),
+          initialCameraPosition:
+              const CameraPosition(target: LatLng(18.0010, -94.5597), zoom: 12.5),
           onMapCreated: (c) => _controller.complete(c),
           onTap: _onTap,
           markers: _selected == null
