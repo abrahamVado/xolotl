@@ -1,4 +1,7 @@
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_messaging_platform_interface/firebase_messaging_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' as shad;
@@ -7,15 +10,29 @@ import 'config.dart';
 import 'screens/consult_screen.dart';
 import 'screens/map_report_screen.dart';
 import 'services/identity.dart';
+import 'services/notification_service.dart';
 import 'theme/shad_theme_builder.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/theme_mode_button.dart';
 
+//1.- firebaseMessagingBackgroundHandler procesa mensajes cuando la app está cerrada.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  final service = await NotificationService.background();
+  await service.handleBackgroundMessage(message);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  final container = ProviderContainer();
   await Identity.ensureIdentity();
-  //1.- ProviderScope habilita Riverpod en toda la aplicación para compartir estado.
-  runApp(const ProviderScope(child: MictlanApp()));
+  await NotificationService.initialize(container: container);
+  FirebaseMessagingPlatform.onBackgroundMessage = firebaseMessagingBackgroundHandler;
+  //2.- UncontrolledProviderScope reutiliza el contenedor configurado durante la inicialización.
+  runApp(UncontrolledProviderScope(container: container, child: const MictlanApp()));
 }
 
 class MictlanApp extends StatefulWidget {
