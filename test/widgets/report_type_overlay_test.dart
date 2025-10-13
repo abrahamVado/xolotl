@@ -75,21 +75,21 @@ void main() {
     });
   });
 
-  //9.- Documentamos la lógica responsiva del grid para mantener consistencia visual.
+  //9.- Documentamos la lógica fija del grid para mantener el patrón 3x3 solicitado.
   group('resolveReportTypeCrossAxisCount', () {
-    //10.- Usa un ancho pequeño para confirmar que siempre haya al menos una columna.
-    test('resolveCrossAxisCount clamps to one column on narrow layouts', () {
-      expect(resolveReportTypeCrossAxisCount(80), 1);
+    //10.- Incluso en anchos mínimos se conservan las tres columnas pedidas.
+    test('resolveCrossAxisCount keeps three columns on narrow layouts', () {
+      expect(resolveReportTypeCrossAxisCount(80), 3);
     });
 
-    //11.- Evalúa un ancho mediano que debería producir dos columnas en teléfonos.
-    test('resolveCrossAxisCount yields intermediate columns for phones', () {
-      expect(resolveReportTypeCrossAxisCount(360), 2);
+    //11.- Los anchos medianos no modifican la cuadrícula fija.
+    test('resolveCrossAxisCount keeps three columns on medium layouts', () {
+      expect(resolveReportTypeCrossAxisCount(360), 3);
     });
 
-    //12.- Garantiza que no supere el máximo configurado aun con pantallas amplias.
-    test('resolveCrossAxisCount caps the number of columns', () {
-      expect(resolveReportTypeCrossAxisCount(1600), 4);
+    //12.- Las pantallas amplias también mantienen exactamente tres columnas.
+    test('resolveCrossAxisCount keeps three columns on wide layouts', () {
+      expect(resolveReportTypeCrossAxisCount(1600), 3);
     });
   });
 
@@ -273,13 +273,13 @@ void main() {
       //32.- Medimos el render del widget Image para asegurar el tamaño deseado.
       final imageSize = tester.getSize(find.byKey(const Key('report-type-image-pothole')));
 
-      //33.- Confirmamos que el ancho y el alto coincidan con los 80 píxeles pedidos.
-      expect(imageSize.width, 80);
-      expect(imageSize.height, 80);
+      //33.- Confirmamos que el ancho y el alto coincidan con los 96 píxeles pedidos.
+      expect(imageSize.width, 96);
+      expect(imageSize.height, 96);
     });
 
-    testWidgets('adapts grid columns to available width', (tester) async {
-      //34.- Configuramos múltiples escenarios de ancho para evaluar la retícula responsiva.
+    testWidgets('keeps grid columns fixed regardless of width', (tester) async {
+      //34.- Configuramos múltiples escenarios de ancho para comprobar la cuadrícula fija.
       const mockTypes = [
         {'id': 'pothole', 'name': 'Bache'},
         {'id': 'light', 'name': 'Alumbrado'},
@@ -287,7 +287,7 @@ void main() {
         {'id': 'water', 'name': 'Fuga'},
       ];
 
-      //35.- Validamos que en 320 px el grid utilice dos columnas ideales para móviles.
+      //35.- Validamos que en 320 px el grid utilice tres columnas a pesar del ancho.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -308,9 +308,9 @@ void main() {
       final mobileGrid = tester.widget<GridView>(find.byType(GridView));
       final mobileDelegate =
           mobileGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(mobileDelegate.crossAxisCount, 2);
+      expect(mobileDelegate.crossAxisCount, 3);
 
-      //36.- Repite la verificación para un ancho de escritorio que debe saturar el máximo.
+      //36.- Repetimos la verificación para un ancho de escritorio que mantiene tres columnas.
       await tester.pumpWidget(
         _wrapWithThemes(
           Scaffold(
@@ -331,18 +331,70 @@ void main() {
       final desktopGrid = tester.widget<GridView>(find.byType(GridView));
       final desktopDelegate =
           desktopGrid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(desktopDelegate.crossAxisCount, 4);
+      expect(desktopDelegate.crossAxisCount, 3);
+    });
+
+    testWidgets('hides label text while preserving semantics', (tester) async {
+      //37.- Renderizamos la tarjeta para asegurar que el texto visible se omite.
+      final semanticsHandle = tester.ensureSemantics();
+      addTearDown(semanticsHandle.dispose);
+
+      await tester.pumpWidget(
+        _wrapWithThemes(
+          Scaffold(
+            body: ReportTypeOverlay(
+              types: const [
+                {'id': 'pothole', 'name': 'Bache'},
+              ],
+              onSelected: _noopOnSelected,
+              onDismiss: _noopOnDismiss,
+            ),
+          ),
+        ),
+      );
+
+      //38.- No debe existir un widget Text con el nombre legible.
+      expect(find.text('Bache'), findsNothing);
+
+      //39.- La semántica conserva la etiqueta accesible del botón.
+      final semantics = tester.getSemantics(find.byKey(const Key('report-type-pothole')));
+      expect(semantics.label, contains('Bache'));
+    });
+
+    testWidgets('uses white material background for report type buttons', (tester) async {
+      //40.- Montamos el overlay para inspeccionar el Material asociado a cada botón.
+      await tester.pumpWidget(
+        _wrapWithThemes(
+          Scaffold(
+            body: ReportTypeOverlay(
+              types: const [
+                {'id': 'pothole', 'name': 'Bache'},
+              ],
+              onSelected: _noopOnSelected,
+              onDismiss: _noopOnDismiss,
+            ),
+          ),
+        ),
+      );
+
+      //41.- Validamos que el Material inmediato tenga color blanco.
+      final materialFinder = find.ancestor(
+        of: find.byKey(const Key('report-type-pothole')),
+        matching: find.byType(Material),
+      );
+      final material = tester.widget<Material>(materialFinder.first);
+      expect(material.color, Colors.white);
     });
   });
 }
 
-//37.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
+//42.- _noopOnSelected actúa como callback vacío para escenarios donde no importa.
 void _noopOnSelected(String _) {}
 
-//38.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
+//43.- _noopOnDismiss actúa como callback vacío para escenarios donde no importa.
 void _noopOnDismiss() {}
 
-//39.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
+//44.- _wrapWithThemes envuelve los tests con MaterialApp y el tema shadcn sincronizado.
 Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   final lightScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey);
   final darkScheme = ColorScheme.fromSeed(seedColor: Colors.blueGrey, brightness: Brightness.dark);
@@ -362,13 +414,13 @@ Widget _wrapWithThemes(Widget child, {ThemeMode mode = ThemeMode.light}) {
   );
 }
 
-//40.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
+//45.- _FakeHttpClient intercepta las cargas de NetworkImage en los tests.
 class _FakeHttpClient extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async => _FakeHttpClientRequest(url);
 }
 
-//41.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
+//46.- _FakeHttpClientRequest implementa la interfaz requerida por NetworkImage.
 class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   _FakeHttpClientRequest(this._uri);
 
@@ -460,7 +512,7 @@ class _FakeHttpClientRequest extends Fake implements HttpClientRequest {
   void writeln([Object? obj = '']) {}
 }
 
-//42.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
+//47.- _FakeHttpClientResponse simula una respuesta vacía satisfactoria.
 class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResponse {
   _FakeHttpClientResponse();
 
@@ -522,7 +574,7 @@ class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientRes
   Future<HttpClientResponse> redirect([String? method, Uri? url, bool? followLoops]) async => this;
 }
 
-//43.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
+//48.- _FakeHttpHeaders almacena los encabezados en memoria para las pruebas.
 class _FakeHttpHeaders extends Fake implements HttpHeaders {
   final Map<String, List<String>> _headers = {};
 
@@ -542,13 +594,13 @@ class _FakeHttpHeaders extends Fake implements HttpHeaders {
   List<String>? operator [](String name) => _headers[name.toLowerCase()];
 }
 
-//44.- _FailingHttpClient simula fallos para activar la ruta de error de imágenes.
+//49.- _FailingHttpClient simula fallos para activar la ruta de error de imágenes.
 class _FailingHttpClient extends Fake implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async => _FailingHttpClientRequest(url);
 }
 
-//45.- _FailingHttpClientRequest produce un error al cerrar la conexión simulada.
+//50.- _FailingHttpClientRequest produce un error al cerrar la conexión simulada.
 class _FailingHttpClientRequest extends Fake implements HttpClientRequest {
   _FailingHttpClientRequest(this._uri);
 

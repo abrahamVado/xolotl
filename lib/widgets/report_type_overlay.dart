@@ -116,21 +116,17 @@ String resolveReportTypeAsset(Map<String, dynamic> type) =>
 int resolveReportTypeCrossAxisCount(double maxWidth) =>
     _ReportTypeGridMetrics.resolveCrossAxisCount(maxWidth);
 
-//11.- _ReportTypeGridMetrics concentra las reglas responsivas del menú.
+//11.- _ReportTypeGridMetrics concentra las reglas fijas del menú.
 class _ReportTypeGridMetrics {
-  //12.- minTileWidth define el ancho deseado de cada tarjeta para calcular columnas.
-  static const double minTileWidth = 152;
+  //12.- fixedColumns asegura que la retícula siempre sea de 3x3 como lo solicitó el diseño.
+  static const int fixedColumns = 3;
 
-  //13.- maxColumns limita el número de columnas simultáneas para evitar iconos diminutos.
-  static const int maxColumns = 4;
-
-  //14.- resolveCrossAxisCount calcula cuántas columnas caben según el ancho disponible.
+  //13.- resolveCrossAxisCount ignora el ancho y fuerza las tres columnas requeridas.
   static int resolveCrossAxisCount(double maxWidth) {
     if (maxWidth.isNaN || !maxWidth.isFinite) {
-      return 1;
+      return fixedColumns;
     }
-    final calculated = (maxWidth / minTileWidth).floor();
-    return calculated.clamp(1, maxColumns);
+    return fixedColumns;
   }
 }
 
@@ -180,7 +176,7 @@ class ReportTypeOverlay extends StatelessWidget {
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 18,
                     crossAxisSpacing: 18,
-                    childAspectRatio: 0.92,
+                    childAspectRatio: 1,
                   ),
                   itemBuilder: (context, index) {
                     final type = types[index];
@@ -195,9 +191,9 @@ class ReportTypeOverlay extends StatelessWidget {
                     final assetPath = _ReportTypeAssets.resolve(type);
                     return _ReportTypeTile(
                       id: id,
-                      label: label,
                       assetPath: assetPath,
                       fallbackAsset: _ReportTypeAssets.defaultAsset,
+                      semanticLabel: label,
                       onTap: () => onSelected(value),
                     );
                   },
@@ -246,12 +242,12 @@ class ReportTypeOverlay extends StatelessWidget {
   }
 }
 
-//23.- _ReportTypeTile define el botón visual cuadrado con imagen y etiqueta.
+//23.- _ReportTypeTile define el botón visual cuadrado centrado únicamente con el icono.
 class _ReportTypeTile extends StatelessWidget {
   //24.- id se usa para llaves únicas y accesibilidad.
   final String id;
-  //25.- label muestra el nombre legible del tipo de reporte.
-  final String label;
+  //25.- semanticLabel conserva el nombre para lectores de pantalla aunque no se renderice.
+  final String semanticLabel;
   //26.- assetPath identifica el recurso gráfico mostrado dentro de la tarjeta.
   final String assetPath;
   //27.- fallbackAsset ofrece una ruta secundaria si falla la primaria.
@@ -261,7 +257,7 @@ class _ReportTypeTile extends StatelessWidget {
 
   const _ReportTypeTile({
     required this.id,
-    required this.label,
+    required this.semanticLabel,
     required this.assetPath,
     required this.fallbackAsset,
     required this.onTap,
@@ -271,13 +267,11 @@ class _ReportTypeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     //29.- theme permite alinear colores con el esquema actual.
     final theme = Theme.of(context);
-    //30.- tileColor usa la superficie secundaria para dar contraste con el fondo principal.
-    final tileColor = theme.colorScheme.surfaceVariant.withOpacity(0.9);
-    //31.- textStyle emplea el estilo de etiquetas pequeñas reforzado para mejor legibilidad.
-    final textStyle = theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
+    //30.- tileColor ahora es blanco puro para respetar la especificación de botones claros.
+    final tileColor = Colors.white;
 
-    //32.- _ReportTypeTileImage evalúa si la ruta es remota y responde a errores.
-    //33.- imageWidget delega la representación a un widget dedicado que maneja errores.
+    //31.- _ReportTypeTileImage evalúa si la ruta es remota y responde a errores.
+    //32.- imageWidget delega la representación a un widget dedicado que maneja errores.
     final Widget imageWidget = _ReportTypeTileImage(
       id: id,
       assetPath: assetPath,
@@ -292,23 +286,15 @@ class _ReportTypeTile extends StatelessWidget {
         key: Key('report-type-$id'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              //34.- Expanded asegura que la imagen conserve proporciones sin desbordar.
-              Expanded(child: imageWidget),
-              const SizedBox(height: 16),
-              //35.- Text muestra el nombre del tipo centrado y truncado si es necesario.
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: textStyle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+        child: Semantics(
+          //33.- Semantics preserva el nombre del tipo para accesibilidad aunque no sea visible.
+          button: true,
+          label: semanticLabel,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: imageWidget,
+            ),
           ),
         ),
       ),
@@ -316,7 +302,7 @@ class _ReportTypeTile extends StatelessWidget {
   }
 }
 
-//36.- _ReportTypeTileImage encapsula la lógica para mostrar imágenes y errores.
+//34.- _ReportTypeTileImage encapsula la lógica para mostrar imágenes y errores.
 class _ReportTypeTileImage extends StatelessWidget {
   final String id;
   final String assetPath;
@@ -360,15 +346,15 @@ class _ReportTypeTileImage extends StatelessWidget {
     return FittedBox(
       fit: BoxFit.contain,
       child: SizedBox(
-        width: 80,
-        height: 80,
+        width: 96,
+        height: 96,
         child: image,
       ),
     );
   }
 }
 
-//37.- _ReportTypeImageError comunica visualmente que la carga falló.
+//35.- _ReportTypeImageError comunica visualmente que la carga falló.
 class _ReportTypeImageError extends StatelessWidget {
   final String id;
   final String fallbackAsset;
