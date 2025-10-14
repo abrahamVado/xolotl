@@ -62,6 +62,8 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
   bool _focusedInitialTarget = false;
   //12.- _locatingUser indica si se está centrando el mapa en la ubicación actual.
   bool _locatingUser = false;
+  //12.1.- _autoCenteredOnIntro evita repetir el centrado automático inicial.
+  bool _autoCenteredOnIntro = false;
 
   //13.- _api expone la dependencia inyectable o recurre al singleton global.
   ApiService get _api => widget.api ?? apiService;
@@ -168,6 +170,23 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
     final controller = await _controller.future;
     await controller.animateCamera(CameraUpdate.newLatLngZoom(target, 16));
     _focusedInitialTarget = true;
+  }
+
+  //20.1.- _onMapCreated registra el controlador y dispara el centrado inicial.
+  void _onMapCreated(GoogleMapController controller) {
+    if (!_controller.isCompleted) {
+      _controller.complete(controller);
+    }
+    _attemptInitialAutoCenter();
+  }
+
+  //20.2.- _attemptInitialAutoCenter lanza el flujo para ubicar a la persona usuaria.
+  void _attemptInitialAutoCenter() {
+    if (!_introAcknowledged) return;
+    if (_autoCenteredOnIntro) return;
+    if (!_controller.isCompleted) return;
+    _autoCenteredOnIntro = true;
+    unawaited(_goToCurrentLocation());
   }
 
   //21.- _goToCurrentLocation anima la cámara hacia la posición ciudadana.
@@ -304,6 +323,10 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
   //26.- _acknowledgeIntro registra la interacción con la pantalla inicial.
   void _acknowledgeIntro() {
     setState(() => _introAcknowledged = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _attemptInitialAutoCenter();
+    });
   }
 
   //27.- _retryMapAvailability solicita nuevamente la verificación del API key.
@@ -350,12 +373,13 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
     }
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    _attemptInitialAutoCenter();
     return Stack(
       children: [
         GoogleMap(
           initialCameraPosition:
               const CameraPosition(target: LatLng(18.0010, -94.5597), zoom: 12.5),
-          onMapCreated: (c) => _controller.complete(c),
+          onMapCreated: _onMapCreated,
           onTap: _onTap,
           markers: _markers,
           myLocationButtonEnabled: true,
