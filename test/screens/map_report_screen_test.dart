@@ -401,8 +401,19 @@ void main() {
     expect(find.byType(GoogleMap), findsOneWidget);
   });
 
+  testWidgets('muestra la instrucción para iniciar un reporte', (tester) async {
+    //9.- Verificamos que la superposición muestre el mensaje contextual del mapa.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Haz clic en el mapa para iniciar un reporte'), findsOneWidget);
+  });
+
   testWidgets('configura la cámara inicial sobre Minatitlán', (tester) async {
-    //9.- Validamos que la cámara apunte a Minatitlán con el zoom adecuado.
+    //10.- Validamos que la cámara apunte a Minatitlán con el zoom adecuado.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
@@ -415,8 +426,9 @@ void main() {
     expect(map.initialCameraPosition.zoom, closeTo(12.5, 0.01));
   });
 
-  testWidgets('tocar el mapa muestra el selector flotante', (tester) async {
-    //10.- Simulamos un toque para verificar que el overlay aparezca.
+  testWidgets('tocar el mapa permite abrir el selector mediante el botón flotante',
+      (tester) async {
+    //11.- Simulamos un toque y usamos el nuevo botón para mostrar el overlay.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
@@ -427,6 +439,12 @@ void main() {
     map.onTap?.call(const LatLng(20.0, -99.0));
     await tester.pump();
 
+    expect(find.byKey(const Key('selected-marker-report-button')), findsOneWidget);
+    expect(find.byKey(const Key('report-type-overlay')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('selected-marker-report-button')));
+    await tester.pump();
+
     expect(find.byKey(const Key('report-type-overlay')), findsOneWidget);
     expect(
       () => tester.widget<shad.SurfaceCard>(find.byKey(const Key('report-type-overlay'))),
@@ -434,8 +452,30 @@ void main() {
     );
   });
 
+  testWidgets('el marcador seleccionado expone un botón para iniciar reporte', (tester) async {
+    //11.1.- Verificamos que el marcador incluya el CTA solicitado por la ciudadanía.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    var map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    map.onTap?.call(const LatLng(21.17, -86.85));
+    await tester.pump();
+
+    map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final marker = map.markers.firstWhere((m) => m.markerId == const MarkerId('selected'));
+
+    expect(marker.infoWindow.title, 'Punto seleccionado');
+    expect(marker.infoWindow.snippet, contains('Comenzar reporte'));
+    expect(marker.infoWindow.onTap, isNotNull);
+    expect(marker.onTap, isNotNull);
+    expect(find.byKey(const Key('selected-marker-report-button')), findsOneWidget);
+  });
+
   testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {
-    //11.- Validamos que la selección dispare el flujo con el tipo esperado.
+    //12.- Validamos que la selección dispare el flujo con el tipo esperado.
     final bundle = _TestBundle();
     String? reportedType;
     await _pumpReportScreen(tester, bundle, onTypeSelected: (value) => reportedType = value);
@@ -445,6 +485,9 @@ void main() {
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     map.onTap?.call(const LatLng(19.43, -99.13));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('selected-marker-report-button')));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('report-type-pothole')));
@@ -462,7 +505,7 @@ void main() {
   });
 
   testWidgets('centrar el mapa solicita la ubicación actual', (tester) async {
-    //12.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
+    //13.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
     final bundle = _TestBundle();
     var permissionChecks = 0;
     var positionRequests = 0;
@@ -510,7 +553,7 @@ void main() {
   });
 
   testWidgets('muestra instrucciones cuando falta el API key', (tester) async {
-    //13.- Simulamos la ausencia del API key para validar el flujo de contingencia.
+    //14.- Simulamos la ausencia del API key para validar el flujo de contingencia.
     GoogleMapsAvailability.debugOverride(() async => false);
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
