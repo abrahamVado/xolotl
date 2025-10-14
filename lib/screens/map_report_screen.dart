@@ -151,11 +151,16 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
       );
     }
     final selection = selectionOverride ?? _selected;
+    //19.1.- Al existir selección agregamos un marcador con instrucciones visibles.
     if (selection != null) {
       markers.add(
         Marker(
           markerId: const MarkerId('selected'),
           position: selection,
+          infoWindow: const InfoWindow(
+            title: 'Genera tu reporte aquí',
+            snippet: 'Selecciona un tipo y completa los detalles.',
+          ),
         ),
       );
     }

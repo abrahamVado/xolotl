@@ -434,6 +434,26 @@ void main() {
     );
   });
 
+  testWidgets('el marcador seleccionado muestra instrucciones de reporte', (tester) async {
+    //10.1.- Comprobamos que el marcador incluya la ventana informativa solicitada.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    map.onTap?.call(const LatLng(21.12, -101.68));
+    await tester.pump();
+
+    final updatedMap = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final marker = updatedMap.markers
+        .firstWhere((candidate) => candidate.markerId == const MarkerId('selected'));
+
+    expect(marker.infoWindow.title, 'Genera tu reporte aquí');
+    expect(marker.infoWindow.snippet, 'Selecciona un tipo y completa los detalles.');
+  });
+
   testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {
     //11.- Validamos que la selección dispare el flujo con el tipo esperado.
     final bundle = _TestBundle();
