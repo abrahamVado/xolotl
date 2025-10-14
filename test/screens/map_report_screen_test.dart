@@ -426,8 +426,9 @@ void main() {
     expect(map.initialCameraPosition.zoom, closeTo(12.5, 0.01));
   });
 
-  testWidgets('tocar el mapa muestra el selector flotante', (tester) async {
-    //11.- Simulamos un toque para verificar que el overlay aparezca.
+  testWidgets('tocar el mapa permite abrir el selector mediante el botón flotante',
+      (tester) async {
+    //11.- Simulamos un toque y usamos el nuevo botón para mostrar el overlay.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
@@ -438,6 +439,12 @@ void main() {
     map.onTap?.call(const LatLng(20.0, -99.0));
     await tester.pump();
 
+    expect(find.byKey(const Key('selected-marker-report-button')), findsOneWidget);
+    expect(find.byKey(const Key('report-type-overlay')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('selected-marker-report-button')));
+    await tester.pump();
+
     expect(find.byKey(const Key('report-type-overlay')), findsOneWidget);
     expect(
       () => tester.widget<shad.SurfaceCard>(find.byKey(const Key('report-type-overlay'))),
@@ -445,24 +452,26 @@ void main() {
     );
   });
 
-  testWidgets('el marcador seleccionado muestra instrucciones de reporte', (tester) async {
-    //10.1.- Comprobamos que el marcador incluya la ventana informativa solicitada.
+  testWidgets('el marcador seleccionado expone un botón para iniciar reporte', (tester) async {
+    //11.1.- Verificamos que el marcador incluya el CTA solicitado por la ciudadanía.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
     await tester.tap(find.text('Click to continue'));
     await tester.pumpAndSettle();
 
-    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
-    map.onTap?.call(const LatLng(21.12, -101.68));
+    var map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    map.onTap?.call(const LatLng(21.17, -86.85));
     await tester.pump();
 
-    final updatedMap = tester.widget<GoogleMap>(find.byType(GoogleMap));
-    final marker = updatedMap.markers
-        .firstWhere((candidate) => candidate.markerId == const MarkerId('selected'));
+    map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final marker = map.markers.firstWhere((m) => m.markerId == const MarkerId('selected'));
 
-    expect(marker.infoWindow.title, 'Genera tu reporte aquí');
-    expect(marker.infoWindow.snippet, 'Selecciona un tipo y completa los detalles.');
+    expect(marker.infoWindow.title, 'Punto seleccionado');
+    expect(marker.infoWindow.snippet, contains('Comenzar reporte'));
+    expect(marker.infoWindow.onTap, isNotNull);
+    expect(marker.onTap, isNotNull);
+    expect(find.byKey(const Key('selected-marker-report-button')), findsOneWidget);
   });
 
   testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {
@@ -476,6 +485,9 @@ void main() {
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     map.onTap?.call(const LatLng(19.43, -99.13));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('selected-marker-report-button')));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('report-type-pothole')));

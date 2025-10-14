@@ -13,6 +13,7 @@ import '../services/session_service.dart';
 import '../widgets/report_type_overlay.dart';
 import '../widgets/otp_auth_sheet.dart';
 import '../widgets/report_details_dialog.dart';
+import '../widgets/map_report_components.dart';
 import '../providers/folio_providers.dart';
 
 class MapReportScreen extends ConsumerStatefulWidget {
@@ -157,14 +158,25 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
         Marker(
           markerId: const MarkerId('selected'),
           position: selection,
-          infoWindow: const InfoWindow(
-            title: 'Genera tu reporte aquí',
-            snippet: 'Selecciona un tipo y completa los detalles.',
+          infoWindow: InfoWindow(
+            title: 'Punto seleccionado',
+            snippet: 'Usa el botón “Comenzar reporte” para continuar.',
+            onTap: _openTypePickerFromMarker,
           ),
+          onTap: _openTypePickerFromMarker,
+          consumeTapEvents: true,
         ),
       );
     }
     return markers;
+  }
+
+  //19.1.- _openTypePickerFromMarker reactiva el selector tras tocar el marcador.
+  void _openTypePickerFromMarker() {
+    setState(() {
+      _pendingLatLng ??= _selected;
+      _showTypePicker = true;
+    });
   }
 
   //20.- _focusInitialTarget centra la cámara cuando proviene desde la consulta.
@@ -251,7 +263,7 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
     setState(() {
       _selected = latLng;
       _pendingLatLng = latLng;
-      _showTypePicker = true;
+      _showTypePicker = false;
       _markers = _buildMarkers(selectionOverride: latLng);
     });
   }
@@ -355,7 +367,7 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _IntroView(onContinue: _acknowledgeIntro),
+              child: MapReportIntroView(onContinue: _acknowledgeIntro),
             ),
           ),
         ),
@@ -370,7 +382,7 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: _MapUnavailableView(onRetry: _retryMapAvailability),
+              child: MapUnavailableView(onRetry: _retryMapAvailability),
             ),
           ),
         ),
@@ -429,7 +441,7 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _LocationPrompt(
+                    MapLocationPrompt(
                       locating: _locatingUser,
                       onLocate: _goToCurrentLocation,
                     ),
@@ -439,6 +451,23 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
             ),
           ),
         ),
+        if (_selected != null && !_showTypePicker)
+          Positioned(
+            bottom: 24,
+            left: 16,
+            right: 16,
+            child: SafeArea(
+              minimum: const EdgeInsets.only(bottom: 8),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  //41.1.- shad.SurfaceCard despliega la ventana flotante con el CTA.
+                  child: SelectedMarkerPopup(onStartReport: _openTypePickerFromMarker),
+                ),
+              ),
+            ),
+          ),
         if (_loading)
           const Positioned(
             top: 50,
@@ -472,228 +501,3 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
   }
 }
 
-//29.- _LocationPrompt guía a la persona usuaria para centrar la cámara.
-class _LocationPrompt extends StatelessWidget {
-  //30.- onLocate dispara la solicitud de coordenadas actuales.
-  final VoidCallback onLocate;
-  //31.- locating deshabilita el botón mientras se consulta la ubicación.
-  final bool locating;
-
-  const _LocationPrompt({
-    super.key,
-    required this.onLocate,
-    required this.locating,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return shad.SurfaceCard(
-      key: const Key('map-location-card'),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-      filled: true,
-      fillColor: colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
-      borderColor: colorScheme.outlineVariant,
-      boxShadow: [
-        BoxShadow(
-          color: colorScheme.shadow.withOpacity(0.07),
-          blurRadius: 18,
-          offset: const Offset(0, 12),
-        ),
-      ],
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                shad.Text(
-                  'Usar mi ubicación',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                shad.Text(
-                  'Centra el mapa y aplica zoom sobre tu ubicación actual.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          shad.PrimaryButton(
-            key: const Key('map-current-location-button'),
-            onPressed: locating ? null : onLocate,
-            density: shad.ButtonDensity.compact,
-            shape: shad.ButtonShape.rectangle,
-            child: locating
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : const shad.Text('Centrar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-//32.- _IntroView encapsula la tarjeta de bienvenida con componentes shadcn.
-class _IntroView extends StatelessWidget {
-  //33.- onContinue propaga el cierre de la introducción hacia la pantalla padre.
-  final VoidCallback onContinue;
-
-  const _IntroView({
-    super.key,
-    required this.onContinue,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    //34.- theme centraliza tipografías y colores calculados por Flutter.
-    final theme = Theme.of(context);
-    //35.- colorScheme reduce accesos repetidos al esquema cromático.
-    final colorScheme = theme.colorScheme;
-    return shad.SurfaceCard(
-      key: const Key('map-intro-card'),
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
-      filled: true,
-      fillColor: colorScheme.surface,
-      borderRadius: BorderRadius.circular(28),
-      borderColor: colorScheme.outlineVariant,
-      boxShadow: [
-        BoxShadow(
-          color: colorScheme.shadow.withOpacity(0.08),
-          blurRadius: 28,
-          offset: const Offset(0, 18),
-        ),
-      ],
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          shad.SurfaceCard(
-            padding: const EdgeInsets.all(20),
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(20),
-            borderColor: colorScheme.outlineVariant.withOpacity(0.4),
-            child: const Icon(
-              Icons.assistant_navigation,
-              size: 72,
-            ),
-          ),
-          const SizedBox(height: 32),
-          shad.Text(
-            'Reporta incidencias en tu ciudad',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          shad.Text(
-            'Selecciona un punto en el mapa para comenzar tu reporte ciudadano.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: shad.PrimaryButton(
-              onPressed: onContinue,
-              density: shad.ButtonDensity.comfortable,
-              shape: shad.ButtonShape.rectangle,
-              child: const shad.Text('Click to continue'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-//36.- _MapUnavailableView muestra instrucciones cuando falta el API key de Google Maps.
-class _MapUnavailableView extends StatelessWidget {
-  //37.- onRetry vuelve a solicitar la verificación del API key configurado.
-  final VoidCallback onRetry;
-
-  const _MapUnavailableView({
-    super.key,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    //38.- theme reutiliza las tipografías configuradas por Material 3.
-    final theme = Theme.of(context);
-    //39.- colorScheme unifica los colores dentro del contenedor de información.
-    final colorScheme = theme.colorScheme;
-    return shad.SurfaceCard(
-      key: const Key('map-unavailable-card'),
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
-      filled: true,
-      fillColor: colorScheme.surface,
-      borderRadius: BorderRadius.circular(24),
-      borderColor: colorScheme.outlineVariant,
-      boxShadow: [
-        BoxShadow(
-          color: colorScheme.shadow.withOpacity(0.08),
-          blurRadius: 28,
-          offset: const Offset(0, 20),
-        ),
-      ],
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Icon(Icons.map_outlined, size: 60),
-          const SizedBox(height: 24),
-          shad.Text(
-            'Configura Google Maps',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          shad.Text(
-            'Agrega tu API key de Android en local.properties como MAPS_API_KEY '
-            'o exporta la variable de entorno MAPS_API_KEY antes de compilar.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 20),
-          shad.Text(
-            'Después vuelve a intentar para cargar el mapa ciudadano.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 28),
-          shad.PrimaryButton(
-            onPressed: onRetry,
-            density: shad.ButtonDensity.comfortable,
-            shape: shad.ButtonShape.rectangle,
-            child: const shad.Text('Reintentar detección'),
-          ),
-        ],
-      ),
-    );
-  }
-}
