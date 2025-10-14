@@ -504,6 +504,49 @@ void main() {
     expect(find.byKey(const Key('report-type-overlay')), findsNothing);
   });
 
+  testWidgets('ubica automáticamente al cargar después de la introducción', (tester) async {
+    //11.1.- Corroboramos que el centrado inicial solicite la ubicación una vez.
+    final bundle = _TestBundle();
+    var permissionChecks = 0;
+    var positionRequests = 0;
+    final location = LocationService(
+      isServiceEnabled: () async => true,
+      checkPermission: () async {
+        permissionChecks++;
+        return LocationPermission.always;
+      },
+      requestPermission: () async => LocationPermission.always,
+      getCurrentPosition: (_) async {
+        positionRequests++;
+        return Position(
+          latitude: 19.0414,
+          longitude: -98.2063,
+          timestamp: DateTime.now(),
+          accuracy: 5,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+      },
+    );
+    await _pumpReportScreen(tester, bundle, locationService: location);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    expect(permissionChecks, greaterThanOrEqualTo(1));
+    expect(positionRequests, 1);
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final selectedMarker =
+        map.markers.firstWhere((marker) => marker.markerId == const MarkerId('selected'));
+    expect(selectedMarker.position.latitude, closeTo(19.0414, 0.0001));
+    expect(selectedMarker.position.longitude, closeTo(-98.2063, 0.0001));
+  });
+
   testWidgets('centrar el mapa solicita la ubicación actual', (tester) async {
     //13.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
     final bundle = _TestBundle();
