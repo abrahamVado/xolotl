@@ -376,6 +376,8 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
         ),
       );
     }
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     _attemptInitialAutoCenter();
     return Stack(
       children: [
@@ -397,9 +399,41 @@ class _MapReportScreenState extends ConsumerState<MapReportScreen> {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: _LocationPrompt(
-                  locating: _locatingUser,
-                  onLocate: _goToCurrentLocation,
+                //40.- Column agrupa la instrucción ciudadana y la tarjeta de ubicación.
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    //41.- Container destaca el mensaje para iniciar un reporte sin cubrir el mapa.
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHigh.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withOpacity(0.05),
+                            blurRadius: 16,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: shad.Text(
+                        'Haz clic en el mapa para iniciar un reporte',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _LocationPrompt(
+                      locating: _locatingUser,
+                      onLocate: _goToCurrentLocation,
+                    ),
+                  ],
                 ),
               ),
             ),

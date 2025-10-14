@@ -401,8 +401,19 @@ void main() {
     expect(find.byType(GoogleMap), findsOneWidget);
   });
 
+  testWidgets('muestra la instrucción para iniciar un reporte', (tester) async {
+    //9.- Verificamos que la superposición muestre el mensaje contextual del mapa.
+    final bundle = _TestBundle();
+    await _pumpReportScreen(tester, bundle);
+
+    await tester.tap(find.text('Click to continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Haz clic en el mapa para iniciar un reporte'), findsOneWidget);
+  });
+
   testWidgets('configura la cámara inicial sobre Minatitlán', (tester) async {
-    //9.- Validamos que la cámara apunte a Minatitlán con el zoom adecuado.
+    //10.- Validamos que la cámara apunte a Minatitlán con el zoom adecuado.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
@@ -416,7 +427,7 @@ void main() {
   });
 
   testWidgets('tocar el mapa muestra el selector flotante', (tester) async {
-    //10.- Simulamos un toque para verificar que el overlay aparezca.
+    //11.- Simulamos un toque para verificar que el overlay aparezca.
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
 
@@ -455,7 +466,7 @@ void main() {
   });
 
   testWidgets('seleccionar un tipo envía el identificador correcto', (tester) async {
-    //11.- Validamos que la selección dispare el flujo con el tipo esperado.
+    //12.- Validamos que la selección dispare el flujo con el tipo esperado.
     final bundle = _TestBundle();
     String? reportedType;
     await _pumpReportScreen(tester, bundle, onTypeSelected: (value) => reportedType = value);
@@ -525,7 +536,7 @@ void main() {
   });
 
   testWidgets('centrar el mapa solicita la ubicación actual', (tester) async {
-    //12.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
+    //13.- Confirmamos que el botón de ubicación obtenga y marque la coordenada.
     final bundle = _TestBundle();
     var permissionChecks = 0;
     var positionRequests = 0;
@@ -573,7 +584,7 @@ void main() {
   });
 
   testWidgets('muestra instrucciones cuando falta el API key', (tester) async {
-    //13.- Simulamos la ausencia del API key para validar el flujo de contingencia.
+    //14.- Simulamos la ausencia del API key para validar el flujo de contingencia.
     GoogleMapsAvailability.debugOverride(() async => false);
     final bundle = _TestBundle();
     await _pumpReportScreen(tester, bundle);
